@@ -1,1 +1,1 @@
-# go-ecommerce
+# E-commerce project using Go
