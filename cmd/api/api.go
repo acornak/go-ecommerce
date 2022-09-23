@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"html/template"
 	"net/http"
 	"os"
 	"time"
@@ -12,12 +11,10 @@ import (
 )
 
 const version = "1.0.0"
-const cssVersion = "1"
 
 type config struct {
 	port int
 	env  string
-	api  string
 	db   struct {
 		dsn string
 	}
@@ -28,10 +25,9 @@ type config struct {
 }
 
 type application struct {
-	config        config
-	logger        *zap.SugaredLogger
-	templateCache map[string]*template.Template
-	version       string
+	config  config
+	logger  *zap.SugaredLogger
+	version string
 }
 
 func (app *application) serve() error {
@@ -63,13 +59,10 @@ func main() {
 	cfg.stripe.key = os.Getenv("STRIPE_KEY")
 	cfg.stripe.secret = os.Getenv("STRIPE_SECRET")
 
-	tc := make(map[string]*template.Template)
-
 	app := &application{
-		config:        cfg,
-		logger:        logger,
-		templateCache: tc,
-		version:       version,
+		config:  cfg,
+		logger:  logger,
+		version: version,
 	}
 
 	if err := app.serve(); err != nil {
