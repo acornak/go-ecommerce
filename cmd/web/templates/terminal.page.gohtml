@@ -1,4 +1,4 @@
-{{ template "base"}}
+{{ template "base" .}}
 
 {{define "title"}}
     Virtual Terminal
@@ -89,7 +89,7 @@
 
     <script src="https://js.stripe.com/v3/"></script>
     <script>
-        const stripe = Stripe("pk_test_51LksyQJQyyUkN3mGFxWqaWKm8qrOlgBWqeNgzChGgfRAFigvW5fPqKNhovBbrUQkywFmu0v0InjNzxgQe2CxODHm001BixUbJi");
+        const stripe = Stripe("{{index .StringMap "publishable_key"}}");
         const cardMessages = document.getElementById("card-messages");
         const payBtn = document.getElementById("pay-button");
         const processing = document.getElementById("processing-payment");
@@ -149,7 +149,7 @@
                 body: JSON.stringify(payload),
             };
 
-            fetch("http://localhost:4001/v1/api/payment-intent", requestOptions)
+            fetch("{{.API}}/v1/api/payment-intent", requestOptions)
                 .then(response => response.text())
                 .then(response => {
                     let data;
@@ -174,7 +174,7 @@
                                     document.getElementById("payment-currency").value = res.paymentIntent.currency;
                                     processing.classList.add("d-none");
                                     showCardSuccess();
-                                    // submit the form
+                                    document.getElementById("charge-form").submit();
                                 }
                             }
                         })
@@ -187,7 +187,6 @@
         }
 
         (function() {
-            // create stripe and elements
             const elements = stripe.elements();
             const style = {
                 base: {
@@ -196,14 +195,12 @@
                 }
             };
 
-            // create card entry
             card = elements.create("card", {
                 style: style,
                 hidePostalCode: true,
             });
             card.mount("#card-element");
 
-            // check for input errors
             card.addEventListener("change", function(e) {
                 let displayError = document.getElementById("card-errors");
                 if (e.error) {

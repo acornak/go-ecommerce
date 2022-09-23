@@ -30,6 +30,8 @@ var functions = template.FuncMap{}
 var templateFS embed.FS
 
 func (app *application) addDefaultData(td *templateData, r *http.Request) *templateData {
+	td.API = app.config.api
+
 	return td
 }
 
@@ -74,7 +76,6 @@ func (app *application) parseTemplate(partials []string, page, templateToRender 
 		for i, x := range partials {
 			partials[i] = fmt.Sprintf("templates/%s.partial.gohtml", x)
 		}
-
 		t, err = template.New(fmt.Sprintf("%s.page.gohtml", page)).Funcs(functions).ParseFS(templateFS, "templates/base.layout.gohtml", strings.Join(partials, ","), templateToRender)
 	} else {
 		t, err = template.New(fmt.Sprintf("%s.page.gohtml", page)).Funcs(functions).ParseFS(templateFS, "templates/base.layout.gohtml", templateToRender)
