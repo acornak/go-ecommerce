@@ -1,13 +1,14 @@
-{{ template "base" .}}
+{{template "base" .}}
 
 {{define "title"}}
-    Virtual Terminal
+    Buy one widget
 {{end}}
 
 {{define "content"}}
-<h2 class="mt-3 text-center">Virtual Terminal</h2>
+{{$widget := index .Data "widget"}}
+<h2 class="mt-3 text-center">Buy One Widget</h2>
 <hr>
-
+<img src="/static/widget.png" alt="widget" class="image-fluid rounded mx-auto d-block">
 <div class="alert alert-danger text-center d-none" id="card-messages"></div>
 
 <form 
@@ -19,18 +20,13 @@
     autocomplete="off"
     novalidate=""
 >
-    <div class="mb-3">
-        <label for="amount" class="form-label">
-            Amount
-        </label>
-        <input
-            type="text"
-            class="form-control"
-            id="amount"
-            name="amount"
-            required=""
-            autocomplete="">
-    </div>
+    <input type="hidden" name="product_id" id="product-id" value="{{$widget.ID}}">
+    <input type="hidden" name="amount" id="amount" value="{{$widget.Price}}">
+
+    <h3 class="mt-2 mb-3 text-center">{{$widget.Name}}: {{formatCurrency $widget.Price}}</h3>
+    <p class="mt-2 mb-2">{{$widget.Description}}</p>
+    <hr>
+
     <div class="mb-3">
         <label for="cardholder-name" class="form-label">
             Cardholder Name
@@ -81,8 +77,6 @@
     <input type="hidden" name="payment_currency" id="payment-currency">
 
 </form>
-
-
 {{end}}
 
 {{define "js"}}

@@ -1,17 +1,14 @@
 package main
 
 import (
+	"go-stripe/internal/models"
 	"net/http"
 
 	"go.uber.org/zap"
 )
 
 func (app *application) VirtualTerminal(w http.ResponseWriter, r *http.Request) {
-	stringMap := map[string]string{
-		"publishable_key": app.config.stripe.key,
-	}
-
-	if err := app.renderTemplate(w, r, "terminal", &templateData{StringMap: stringMap}); err != nil {
+	if err := app.renderTemplate(w, r, "terminal", &templateData{}, "stripe-js"); err != nil {
 		app.logger.Fatal(err)
 	}
 }
@@ -32,6 +29,24 @@ func (app *application) PaymentSucceeded(w http.ResponseWriter, r *http.Request)
 	}
 
 	if err := app.renderTemplate(w, r, "succeeded", &templateData{Data: data}); err != nil {
+		app.logger.Fatal(err)
+	}
+}
+
+func (app *application) ChargeOnce(w http.ResponseWriter, r *http.Request) {
+	widget := models.Widget{
+		ID:             1,
+		Name:           "Custom Widget",
+		Description:    "A very nice widget",
+		InventoryLevel: 10,
+		Price:          1000,
+	}
+
+	data := map[string]any{
+		"widget": widget,
+	}
+
+	if err := app.renderTemplate(w, r, "charge-once", &templateData{Data: data}, "stripe-js"); err != nil {
 		app.logger.Fatal(err)
 	}
 }

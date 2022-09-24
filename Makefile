@@ -1,16 +1,10 @@
-STRIPE_SECRET=sk_test_51LksyQJQyyUkN3mGazFaD2gdUk3BeriB0MCxp5zJ88by7jyhYmo6DFm438xfXeBdDMbz3Afww1IjovguyWHcqJau009QFSGxgX
-STRIPE_KEY=pk_test_51LksyQJQyyUkN3mGFxWqaWKm8qrOlgBWqeNgzChGgfRAFigvW5fPqKNhovBbrUQkywFmu0v0InjNzxgQe2CxODHm001BixUbJi
+export DSN := username:password@tcp(localhost:3306)/widgets?parseTime=true&tls=false
+export STRIPE_SECRET := sk_test_51LksyQJQyyUkN3mGazFaD2gdUk3BeriB0MCxp5zJ88by7jyhYmo6DFm438xfXeBdDMbz3Afww1IjovguyWHcqJau009QFSGxgX
+export STRIPE_KEY := pk_test_51LksyQJQyyUkN3mGFxWqaWKm8qrOlgBWqeNgzChGgfRAFigvW5fPqKNhovBbrUQkywFmu0v0InjNzxgQe2CxODHm001BixUbJi
 FRONTEND_BINARY=frontend
 BACKEND_BINARY=backend
 FRONTEND_PORT=4000
 BACKEND_PORT=4001
-DSN=root@tcp(localhost:3306)/widgets?parseTime=true&tls=false
-
-## build all binaries
-build:
-	@echo "Building..."
-	build_front build_back
-	@echo "Built!"
 
 ## clean all binaries and run go clean
 clean:

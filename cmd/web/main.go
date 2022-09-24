@@ -3,6 +3,8 @@ package main
 import (
 	"flag"
 	"fmt"
+	"go-stripe/internal/driver"
+	"go-stripe/internal/models"
 	"html/template"
 	"net/http"
 	"os"
@@ -32,6 +34,7 @@ type application struct {
 	logger        *zap.SugaredLogger
 	templateCache map[string]*template.Template
 	version       string
+	DB            models.DBModel
 }
 
 func (app *application) serve() error {
@@ -61,16 +64,24 @@ func main() {
 	flag.StringVar(&cfg.api, "api", "http://localhost:4001", "URL to API")
 	flag.Parse()
 
+	cfg.db.dsn = os.Getenv("DSN")
 	cfg.stripe.key = os.Getenv("STRIPE_KEY")
 	cfg.stripe.secret = os.Getenv("STRIPE_SECRET")
 
 	tc := make(map[string]*template.Template)
+
+	conn, err := driver.OpenDB(cfg.db.dsn)
+	if err != nil {
+		logger.Fatal("unable to connect to database ", err)
+	}
+	defer conn.Close()
 
 	app := &application{
 		config:        cfg,
 		logger:        logger,
 		templateCache: tc,
 		version:       version,
+		DB:            models.DBModel{DB: conn},
 	}
 
 	if err := app.serve(); err != nil {

@@ -3,6 +3,8 @@ package main
 import (
 	"flag"
 	"fmt"
+	"go-stripe/internal/driver"
+	"go-stripe/internal/models"
 	"net/http"
 	"os"
 	"time"
@@ -28,6 +30,7 @@ type application struct {
 	config  config
 	logger  *zap.SugaredLogger
 	version string
+	DB      models.DBModel
 }
 
 func (app *application) serve() error {
@@ -56,13 +59,21 @@ func main() {
 	flag.StringVar(&cfg.env, "env", "develop", "Application environment {develop|prod|maintenance}")
 	flag.Parse()
 
+	cfg.db.dsn = os.Getenv("DSN")
 	cfg.stripe.key = os.Getenv("STRIPE_KEY")
 	cfg.stripe.secret = os.Getenv("STRIPE_SECRET")
+
+	conn, err := driver.OpenDB(cfg.db.dsn)
+	if err != nil {
+		logger.Fatal("unable to connect to database ", err)
+	}
+	defer conn.Close()
 
 	app := &application{
 		config:  cfg,
 		logger:  logger,
 		version: version,
+		DB:      models.DBModel{DB: conn},
 	}
 
 	if err := app.serve(); err != nil {

@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/go-chi/chi/v5"
 	"go.uber.org/zap"
 )
 
@@ -50,7 +51,7 @@ func (app *application) GetPaymentIntent(w http.ResponseWriter, r *http.Request)
 	}
 
 	if ok {
-		out, err := json.MarshalIndent(pi, "", "    ")
+		out, err := json.Marshal(pi)
 		if err != nil {
 			app.logger.Error("failed to decode payment intent: ", zap.Error(err))
 			return
@@ -66,7 +67,7 @@ func (app *application) GetPaymentIntent(w http.ResponseWriter, r *http.Request)
 			Content: "",
 		}
 
-		out, err := json.MarshalIndent(j, "", "    ")
+		out, err := json.Marshal(j)
 		if err != nil {
 			app.logger.Error("failed to marshal json: ", zap.Error(err))
 			return
@@ -75,5 +76,28 @@ func (app *application) GetPaymentIntent(w http.ResponseWriter, r *http.Request)
 		w.Header().Set("Content-Type", "application/json")
 		w.Write(out)
 	}
+}
 
+func (app *application) GetWidgetByID(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	widgetID, err := strconv.Atoi(id)
+	if err != nil {
+		app.logger.Error("failed to get widget ID: ", zap.Error(err))
+		return
+	}
+
+	widget, err := app.DB.GetWidget(widgetID)
+	if err != nil {
+		app.logger.Error("failed to get widget from database: ", zap.Error(err))
+		return
+	}
+
+	out, err := json.Marshal(widget)
+	if err != nil {
+		app.logger.Error("failed to get marshal json: ", zap.Error(err))
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(out)
 }
