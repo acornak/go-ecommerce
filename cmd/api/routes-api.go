@@ -7,6 +7,7 @@ import (
 	"github.com/go-chi/cors"
 )
 
+// define routes
 func (app *application) routes() http.Handler {
 	mux := chi.NewRouter()
 

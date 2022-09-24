@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/gob"
 	"flag"
 	"fmt"
 	"go-stripe/internal/driver"
@@ -10,11 +11,14 @@ import (
 	"os"
 	"time"
 
+	"github.com/alexedwards/scs/v2"
 	"go.uber.org/zap"
 )
 
 const version = "1.0.0"
 const cssVersion = "1"
+
+var session *scs.SessionManager
 
 type config struct {
 	port int
@@ -35,9 +39,12 @@ type application struct {
 	templateCache map[string]*template.Template
 	version       string
 	DB            models.DBModel
+	Session       *scs.SessionManager
 }
 
+// serve application
 func (app *application) serve() error {
+	// initialize http server
 	srv := &http.Server{
 		Addr:              fmt.Sprintf(":%d", app.config.port),
 		Handler:           app.routes(),
@@ -53,10 +60,19 @@ func (app *application) serve() error {
 }
 
 func main() {
+	// register type for session
+	gob.Register(TransactionData{})
+
+	// initialize zap sugar logger
 	loggerInit, _ := zap.NewProduction()
 	defer loggerInit.Sync()
 	logger := loggerInit.Sugar()
 
+	// setup session
+	session = scs.New()
+	session.Lifetime = 24 * time.Hour
+
+	// setup application config
 	var cfg config
 
 	flag.IntVar(&cfg.port, "port", 4000, "Server port to listen on")
@@ -68,22 +84,27 @@ func main() {
 	cfg.stripe.key = os.Getenv("STRIPE_KEY")
 	cfg.stripe.secret = os.Getenv("STRIPE_SECRET")
 
+	// setup template data
 	tc := make(map[string]*template.Template)
 
+	// establish database connection
 	conn, err := driver.OpenDB(cfg.db.dsn)
 	if err != nil {
 		logger.Fatal("unable to connect to database ", err)
 	}
 	defer conn.Close()
 
+	// initialize application
 	app := &application{
 		config:        cfg,
 		logger:        logger,
 		templateCache: tc,
 		version:       version,
 		DB:            models.DBModel{DB: conn},
+		Session:       session,
 	}
 
+	// serve application
 	if err := app.serve(); err != nil {
 		app.logger.Fatal("unable to start the application ", err)
 	}

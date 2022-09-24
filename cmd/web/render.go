@@ -30,15 +30,16 @@ var functions = template.FuncMap{
 	"formatCurrency": formatCurrency,
 }
 
+// format currency to user friendly format
 func formatCurrency(n int) string {
-	f := float32(n / 100)
-
+	f := float32(n) / float32(100)
 	return fmt.Sprintf("%.2f €", f)
 }
 
 //go:embed templates
 var templateFS embed.FS
 
+// handle default template data
 func (app *application) addDefaultData(td *templateData, r *http.Request) *templateData {
 	td.API = app.config.api
 	td.StripePublishableKey = app.config.stripe.key
@@ -47,14 +48,15 @@ func (app *application) addDefaultData(td *templateData, r *http.Request) *templ
 	return td
 }
 
+// render template
 func (app *application) renderTemplate(w http.ResponseWriter, r *http.Request, page string, td *templateData, partials ...string) error {
 	var t *template.Template
 	var err error
 
 	templateToRender := fmt.Sprintf("templates/%s.page.gohtml", page)
-
 	_, templateInMap := app.templateCache[templateToRender]
 
+	// handle caching pages
 	if app.config.env == "prod" && templateInMap {
 		t = app.templateCache[templateToRender]
 	} else {
@@ -79,6 +81,7 @@ func (app *application) renderTemplate(w http.ResponseWriter, r *http.Request, p
 	return nil
 }
 
+// parse gohtml templates
 func (app *application) parseTemplate(partials []string, page, templateToRender string) (*template.Template, error) {
 	var t *template.Template
 	var err error

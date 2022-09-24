@@ -45,7 +45,7 @@
         form.classList.add("was-validated");
         hidePayBtn();
 
-        let amountToCharge = String(parseFloat(document.getElementById("amount").value));
+        let amountToCharge = document.getElementById("amount").value;
 
         let payload = {
             amount: amountToCharge,
@@ -80,7 +80,7 @@
                             showPayBtn();
                         } else if (res.paymentIntent) {
                             if (res.paymentIntent.status === "succeeded") {
-                                document.getElementById("payment-method").value = res.paymentIntent.payment_method_types[0];
+                                document.getElementById("payment-method").value = res.paymentIntent.payment_method;
                                 document.getElementById("payment-intent").value = res.paymentIntent.id;
                                 document.getElementById("payment-amount").value = res.paymentIntent.amount;
                                 document.getElementById("payment-currency").value = res.paymentIntent.currency;

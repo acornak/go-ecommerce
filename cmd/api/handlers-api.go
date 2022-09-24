@@ -22,9 +22,11 @@ type jsonResponse struct {
 	ID      int    `json:"id,omitempty"`
 }
 
+// get payment intent from stripe
 func (app *application) GetPaymentIntent(w http.ResponseWriter, r *http.Request) {
 	var payload stripePayload
 
+	// parse data
 	err := json.NewDecoder(r.Body).Decode(&payload)
 	if err != nil {
 		app.logger.Error("failed to decode body: ", zap.Error(err))
@@ -37,6 +39,7 @@ func (app *application) GetPaymentIntent(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	// initialize card
 	card := cards.Card{
 		Secret:   app.config.stripe.secret,
 		Key:      app.config.stripe.key,
@@ -78,7 +81,9 @@ func (app *application) GetPaymentIntent(w http.ResponseWriter, r *http.Request)
 	}
 }
 
+// handle get widget by ID route
 func (app *application) GetWidgetByID(w http.ResponseWriter, r *http.Request) {
+	// get ID from url params
 	id := chi.URLParam(r, "id")
 	widgetID, err := strconv.Atoi(id)
 	if err != nil {
@@ -86,6 +91,7 @@ func (app *application) GetWidgetByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// get widget from the database
 	widget, err := app.DB.GetWidget(widgetID)
 	if err != nil {
 		app.logger.Error("failed to get widget from database: ", zap.Error(err))

@@ -15,3 +15,8 @@
 ## Hot Reload
 
 - Air: https://github.com/cosmtrek/air
+
+## Migrate Database
+
+- Soda: https://gobuffalo.io/documentation/database/soda/
+- scripts are in `migrations` folder

@@ -33,7 +33,9 @@ type application struct {
 	DB      models.DBModel
 }
 
+// serve application
 func (app *application) serve() error {
+	// initialize http server
 	srv := &http.Server{
 		Addr:              fmt.Sprintf(":%d", app.config.port),
 		Handler:           app.routes(),
@@ -49,10 +51,12 @@ func (app *application) serve() error {
 }
 
 func main() {
+	// initialize zap sugar logger
 	loggerInit, _ := zap.NewProduction()
 	defer loggerInit.Sync()
 	logger := loggerInit.Sugar()
 
+	// setup application config
 	var cfg config
 
 	flag.IntVar(&cfg.port, "port", 4001, "Server port to listen on")
@@ -63,12 +67,14 @@ func main() {
 	cfg.stripe.key = os.Getenv("STRIPE_KEY")
 	cfg.stripe.secret = os.Getenv("STRIPE_SECRET")
 
+	// establish database connection
 	conn, err := driver.OpenDB(cfg.db.dsn)
 	if err != nil {
 		logger.Fatal("unable to connect to database ", err)
 	}
 	defer conn.Close()
 
+	// initialize application
 	app := &application{
 		config:  cfg,
 		logger:  logger,
@@ -76,6 +82,7 @@ func main() {
 		DB:      models.DBModel{DB: conn},
 	}
 
+	// serve application
 	if err := app.serve(); err != nil {
 		app.logger.Fatal("unable to start the application ", err)
 	}
