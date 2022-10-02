@@ -1,0 +1,171 @@
+{{template "base" .}}
+
+{{define "title"}}
+    Bronze Plan
+{{end}}
+
+{{define "content"}}
+{{$widget := index .Data "widget"}}
+<h2 class="mt-3 text-center">{{$widget.Name}}</h2>
+<hr>
+<div class="alert alert-danger text-center d-none" id="card-messages"></div>
+
+<form 
+    action="/payment-succeeded-temp"
+    method="post"
+    name="charge_form"
+    id="charge-form"
+    class="d-block needs-validation charge-form"
+    autocomplete="off"
+    novalidate=""
+>
+    <input type="hidden" name="product_id" id="product-id" value="{{$widget.ID}}">
+    <input type="hidden" name="amount" id="amount" value="{{$widget.Price}}">
+
+    <h3 class="mt-2 mb-3 text-center">{{formatCurrency $widget.Price}}</h3>
+    <p class="mt-2 mb-2">{{$widget.Description}}</p>
+    <hr>
+
+    <div class="mb-3">
+        <label for="first-name" class="form-label">
+            First Name
+        </label>
+        <input
+            type="text"
+            class="form-control"
+            id="first-name"
+            name="first_name"
+            required=""
+            autocomplete="">
+    </div>
+    <div class="mb-3">
+        <label for="last-name" class="form-label">
+            Last Name
+        </label>
+        <input
+            type="text"
+            class="form-control"
+            id="last-name"
+            name="last_name"
+            required=""
+            autocomplete="">
+    </div>
+    <div class="mb-3">
+        <label for="cardholder-email" class="form-label">
+            Email
+        </label>
+        <input
+            type="email"
+            class="form-control"
+            id="cardholder-email"
+            name="cardholder_email"
+            required=""
+            autocomplete="">
+    </div>
+     <div class="mb-3">
+        <label for="cardholder-name" class="form-label">
+            Cardholder Name
+        </label>
+        <input
+            type="text"
+            class="form-control"
+            id="cardholder-name"
+            name="cardholder_name"
+            required=""
+            autocomplete="">
+    </div>
+    <div class="mb-3">
+        <label for="card-element" class="form-label">
+            Credit Card
+        </label>
+        <div id="card-element" class="form-control"></div>
+        <div id="card-errors" class="alert-danger text-center" role="alert"></div>
+        <div id="card-success" class="alert-success text-center" role="alert"></div>
+    </div>
+
+    <hr>
+
+    <a id="pay-button" href="javascript:void(0)" class="btn btn-primary" onClick="val()">
+        Pay {{formatCurrency $widget.Price}}/month
+    </a>
+    <div id="processing-payment" class="text-center d-none">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+
+    <input type="hidden" name="payment_intent" id="payment-intent">
+    <input type="hidden" name="payment_method" id="payment-method">
+    <input type="hidden" name="payment_amount" id="payment-amount">
+    <input type="hidden" name="payment_currency" id="payment-currency">
+
+</form>
+{{end}}
+
+{{define "js"}}
+{{$widget := index .Data "widget"}}
+<script src="https://js.stripe.com/v3/"></script>
+
+<script>
+    const stripe = Stripe({{.StripePublishableKey}});
+    const cardMessages = document.getElementById("card-messages");
+    const payBtn = document.getElementById("pay-button");
+    const processing = document.getElementById("processing-payment");
+    
+    let card;
+
+    function hidePayBtn() {
+        payBtn.classList.add("d-none");
+        processing.classList.remove("d-none");
+    };
+
+    function showPayBtn() {
+        payBtn.classList.remove("d-none");
+        processing.classList.add("d-none");
+    };
+
+    function showCardError(msg) {
+        cardMessages.classList.add("alert-danger");
+        cardMessages.classList.remove("alert-success");
+        cardMessages.classList.remove("d-none");
+        cardMessages.innerText = msg;
+    };
+
+    function showCardSuccess() {
+        cardMessages.classList.remove("alert-danger");
+        cardMessages.classList.add("alert-success");
+        cardMessages.classList.remove("d-none");
+        cardMessages.innerText = "Transaction successful";
+    };
+
+
+
+    (function() {
+        const elements = stripe.elements();
+        const style = {
+            base: {
+                fontSize: "16px",
+                lineHeight: "24px",
+            }
+        };
+
+        card = elements.create("card", {
+            style: style,
+            hidePostalCode: true,
+        });
+        card.mount("#card-element");
+
+        card.addEventListener("change", function(e) {
+            let displayError = document.getElementById("card-errors");
+            if (e.error) {
+                displayError.classList.remove("d-none");
+                displayError.textContent = e.error.message;
+            } else {
+                displayError.classList.add("d-none");
+                displayError.textContent = "";
+            }
+        });
+    })();
+</script>
+
+{{end}}

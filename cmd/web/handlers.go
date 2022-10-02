@@ -28,14 +28,14 @@ type TransactionData struct {
 // handler for homepage
 func (app *application) Home(w http.ResponseWriter, r *http.Request) {
 	if err := app.renderTemplate(w, r, "home", &templateData{}); err != nil {
-		app.logger.Fatal(err)
+		app.logger.Error("unable to render template: ", zap.Error(err))
 	}
 }
 
 // handler for virtual terminal page
 func (app *application) VirtualTerminal(w http.ResponseWriter, r *http.Request) {
 	if err := app.renderTemplate(w, r, "terminal", &templateData{}, "stripe-js"); err != nil {
-		app.logger.Fatal(err)
+		app.logger.Error("unable to render template: ", zap.Error(err))
 	}
 }
 
@@ -64,18 +64,21 @@ func (app *application) GetTransactionData(r *http.Request) (TransactionData, er
 
 	pi, err := card.RetrievePaymentIntent(paymentIntent)
 	if err != nil {
-		app.logger.Fatal("failed to retrieve payment intent: ", err)
+		app.logger.Error("failed to retrieve payment intent: ", zap.Error(err))
+		return txData, err
 	}
 
 	pm, err := card.GetPaymentMethod(paymentMethod)
 	if err != nil {
-		app.logger.Fatal("failed to get payment method: ", err)
+		app.logger.Error("failed to get payment method: ", zap.Error(err))
+		return txData, err
 	}
 
 	// create a new transaction
 	amount, err := strconv.Atoi(r.Form.Get("payment_amount"))
 	if err != nil {
-		app.logger.Fatal("failed to parse payment amount: ", err)
+		app.logger.Error("failed to parse payment amount: ", zap.Error(err))
+		return txData, err
 	}
 
 	txData = TransactionData{
@@ -107,18 +110,21 @@ func (app *application) PaymentSucceeded(w http.ResponseWriter, r *http.Request)
 	// create a new order
 	widgetID, err := strconv.Atoi(r.Form.Get("product_id"))
 	if err != nil {
-		app.logger.Fatal("failed to parse widget id: ", err)
+		app.logger.Error("failed to parse widget id: ", zap.Error(err))
+		return
 	}
 
 	txData, err := app.GetTransactionData(r)
 	if err != nil {
-		app.logger.Fatal("failed to get transaction data: ", err)
+		app.logger.Error("failed to get transaction data: ", zap.Error(err))
+		return
 	}
 
 	// create a new customer
 	customerID, err := app.SaveCustomer(txData.FirstName, txData.LastName, txData.Email)
 	if err != nil {
-		app.logger.Fatal("failed to insert a new customer: ", err)
+		app.logger.Error("failed to insert a new customer: ", zap.Error(err))
+		return
 	}
 
 	tx := models.Transaction{
@@ -135,7 +141,8 @@ func (app *application) PaymentSucceeded(w http.ResponseWriter, r *http.Request)
 
 	txID, err := app.SaveTransaction(tx)
 	if err != nil {
-		app.logger.Fatal("failed to insert a new transaction: ", err)
+		app.logger.Error("failed to insert a new transaction: ", zap.Error(err))
+		return
 	}
 
 	order := models.Order{
@@ -150,7 +157,8 @@ func (app *application) PaymentSucceeded(w http.ResponseWriter, r *http.Request)
 	}
 
 	if _, err = app.SaveOrder(order); err != nil {
-		app.logger.Fatal("failed to save order: ", err)
+		app.logger.Error("failed to save order: ", zap.Error(err))
+		return
 	}
 
 	// write data to session and redirect user to receipt page
@@ -162,7 +170,8 @@ func (app *application) PaymentSucceeded(w http.ResponseWriter, r *http.Request)
 func (app *application) VirtualTerminalPaymentSucceeded(w http.ResponseWriter, r *http.Request) {
 	txData, err := app.GetTransactionData(r)
 	if err != nil {
-		app.logger.Fatal("failed to get transaction data: ", err)
+		app.logger.Error("failed to get transaction data: ", zap.Error(err))
+		return
 	}
 
 	tx := models.Transaction{
@@ -179,7 +188,8 @@ func (app *application) VirtualTerminalPaymentSucceeded(w http.ResponseWriter, r
 
 	_, err = app.SaveTransaction(tx)
 	if err != nil {
-		app.logger.Fatal("failed to insert a new transaction: ", err)
+		app.logger.Error("failed to insert a new transaction: ", zap.Error(err))
+		return
 	}
 
 	// write data to session and redirect user to receipt page
@@ -202,7 +212,8 @@ func (app *application) VirtualTerminalReceipt(w http.ResponseWriter, r *http.Re
 	app.Session.Remove(r.Context(), "virtual-terminal-receipt")
 
 	if err := app.renderTemplate(w, r, "virtual-terminal-receipt", &templateData{Data: data}); err != nil {
-		app.logger.Fatal(err)
+		app.logger.Error("unable to render template: ", zap.Error(err))
+		return
 	}
 }
 
@@ -221,7 +232,8 @@ func (app *application) Receipt(w http.ResponseWriter, r *http.Request) {
 	app.Session.Remove(r.Context(), "receipt")
 
 	if err := app.renderTemplate(w, r, "receipt", &templateData{Data: data}); err != nil {
-		app.logger.Fatal(err)
+		app.logger.Error("unable to render template: ", zap.Error(err))
+		return
 	}
 }
 
@@ -267,7 +279,8 @@ func (app *application) ChargeOnce(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	widgetID, err := strconv.Atoi(id)
 	if err != nil {
-		app.logger.Fatal("failed to get widget ID: ", zap.Error(err))
+		app.logger.Error("failed to get widget ID: ", zap.Error(err))
+		return
 	}
 
 	// get widget data from database
@@ -282,6 +295,26 @@ func (app *application) ChargeOnce(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := app.renderTemplate(w, r, "charge-once", &templateData{Data: data}, "stripe-js"); err != nil {
-		app.logger.Fatal(err)
+		app.logger.Error("unable to render template: ", zap.Error(err))
+		return
+	}
+}
+
+// handler for bronze plan
+func (app *application) BronzePlan(w http.ResponseWriter, r *http.Request) {
+	// get only 1 plan at the moment
+	widget, err := app.DB.GetWidget(2)
+	if err != nil {
+		app.logger.Error("failed to get widget from database: ", zap.Error(err))
+		return
+	}
+
+	data := map[string]any{
+		"widget": widget,
+	}
+
+	if err := app.renderTemplate(w, r, "bronze-plan", &templateData{Data: data}); err != nil {
+		app.logger.Error("unable to render template: ", zap.Error(err))
+		return
 	}
 }
