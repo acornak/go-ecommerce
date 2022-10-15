@@ -318,3 +318,11 @@ func (app *application) BronzePlan(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 }
+
+// handler for bronze plan receipt
+func (app *application) BronzePlanReceipt(w http.ResponseWriter, r *http.Request) {
+	if err := app.renderTemplate(w, r, "receipt-plan", &templateData{}); err != nil {
+		app.logger.Error("unable to render template: ", zap.Error(err))
+		return
+	}
+}

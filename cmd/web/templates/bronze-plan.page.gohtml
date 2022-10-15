@@ -10,7 +10,7 @@
 <hr>
 <div class="alert alert-danger text-center d-none" id="card-messages"></div>
 
-<form 
+<form
     action="/payment-succeeded-temp"
     method="post"
     name="charge_form"
@@ -111,7 +111,7 @@
     const cardMessages = document.getElementById("card-messages");
     const payBtn = document.getElementById("pay-button");
     const processing = document.getElementById("processing-payment");
-    
+
     let card;
 
     function hidePayBtn() {
@@ -138,6 +138,74 @@
         cardMessages.innerText = "Transaction successful";
     };
 
+    function val() {
+        let form = document.getElementById("charge-form");
+
+        if (form.checkValidity() === false) {
+            this.event.preventDefault();
+            this.event.stopPropagation();
+            form.classList.add("was-validated");
+            return
+        };
+
+        form.classList.add("was-validated");
+        hidePayBtn();
+
+        let amountToCharge = document.getElementById("amount").value;
+
+        stripe.createPaymentMethod({
+            type: "card",
+            card: card,
+            billing_details: {
+                email: document.getElementById("cardholder-email").value
+            }
+        }).then(stripePaymentMethodHandler);
+
+        function stripePaymentMethodHandler(result) {
+            if (result.error) {
+                showCardError(result.error.message);
+            } else {
+                let payload = {
+                    product_id: document.getElementById("product-id").value,
+                    plan: "{{$widget.PlanID}}",
+                    payment_method: result.paymentMethod.id,
+                    email: document.getElementById("cardholder-email").value,
+                    last_four: result.paymentMethod.card.last4,
+                    card_brand: result.paymentMethod.card.brand,
+                    exp_month: result.paymentMethod.card.exp_month,
+                    exp_year: result.paymentMethod.card.exp_year,
+                    first_name: document.getElementById("first-name").value,
+                    last_name: document.getElementById("last-name").value,
+                    amount: document.getElementById("amount").value,
+                    currency: document.getElementById("payment-currency").value,
+                }
+
+                const requestOptions = {
+                    method: "post",
+                    headers: {
+                        "Accept": "application/json",
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify(payload),
+                }
+
+                fetch("{{.API}}/v1/api/create-customer-subscribe", requestOptions)
+                .then(response => response.json())
+                .then(function(data) {
+                    console.log(data);
+                    processing.classList.add("d-none");
+                    showCardSuccess();
+                    sessionStorage.first_name = document.getElementById("first-name").value;
+                    sessionStorage.last_name = document.getElementById("last-name").value;
+                    sessionStorage.currency = document.getElementById("payment-currency").value;
+                    sessionStorage.amount = "{{formatCurrency $widget.Price}}";
+                    sessionStorage.last_four = result.paymentMethod.card.last4;
+
+                    location.href = "/receipt/bronze";
+                })
+            }
+        }
+    }
 
 
     (function() {

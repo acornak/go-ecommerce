@@ -20,3 +20,5 @@
 
 - Soda: https://gobuffalo.io/documentation/database/soda/
 - scripts are in `migrations` folder
+
+TODO: unify err messages
