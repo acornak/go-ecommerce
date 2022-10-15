@@ -7,6 +7,7 @@ import (
 	"go-stripe/internal/driver"
 	"go-stripe/internal/models"
 	"html/template"
+	"log"
 	"net/http"
 	"os"
 	"time"
@@ -16,7 +17,8 @@ import (
 )
 
 const version = "1.0.0"
-const cssVersion = "1"
+
+// const cssVersion = "1"
 
 var session *scs.SessionManager
 
@@ -64,9 +66,13 @@ func main() {
 	gob.Register(TransactionData{})
 
 	// initialize zap sugar logger
-	loggerInit, _ := zap.NewProduction()
-	defer loggerInit.Sync()
-	logger := loggerInit.Sugar()
+	logger := zap.NewExample().Sugar()
+	defer func() {
+		err := logger.Sync()
+		if err != nil {
+			log.Fatal("failed to initialize zap logger: ", err)
+		}
+	}()
 
 	// setup session
 	session = scs.New()

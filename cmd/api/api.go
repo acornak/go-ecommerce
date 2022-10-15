@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"go-stripe/internal/driver"
 	"go-stripe/internal/models"
+	"log"
 	"net/http"
 	"os"
 	"time"
@@ -52,9 +53,13 @@ func (app *application) serve() error {
 
 func main() {
 	// initialize zap sugar logger
-	loggerInit, _ := zap.NewProduction()
-	defer loggerInit.Sync()
-	logger := loggerInit.Sugar()
+	logger := zap.NewExample().Sugar()
+	defer func() {
+		err := logger.Sync()
+		if err != nil {
+			log.Fatal("failed to initialize zap logger: ", err)
+		}
+	}()
 
 	// setup application config
 	var cfg config

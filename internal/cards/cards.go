@@ -49,7 +49,6 @@ func (c *Card) CreatePaymentIntent(currency string, amount int) (*stripe.Payment
 }
 
 // gets the payment method by payment intent id
-
 func (c *Card) GetPaymentMethod(s string) (*stripe.PaymentMethod, error) {
 	stripe.Key = c.Secret
 
@@ -77,7 +76,7 @@ func (c *Card) RetrievePaymentIntent(id string) (*stripe.PaymentIntent, error) {
 
 // returns human readable versions of card error messages
 func cardErrorMessage(code stripe.ErrorCode) string {
-	var msg = ""
+	var msg string
 
 	switch code {
 	case stripe.ErrorCodeCardDeclined:
