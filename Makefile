@@ -27,6 +27,7 @@ build_back:
 
 ## start the application
 start: start_front start_back
+	@mysql.server start
 
 ## start the front end
 start_front: build_front
