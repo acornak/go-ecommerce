@@ -19,13 +19,19 @@ func (app *application) routes() http.Handler {
 		MaxAge:           300,
 	}))
 
-	mux.Post("/v1/api/payment-intent", app.GetPaymentIntent)
-	mux.Get("/v1/api/widget/{id}", app.GetWidgetByID)
+	mux.Post("/v"+app.version[0:1]+"/api/payment-intent", app.GetPaymentIntent)
+	mux.Get("/v"+app.version[0:1]+"/api/widget/{id}", app.GetWidgetByID)
 
-	mux.Post("/v1/api/create-customer-subscribe", app.CreateCustomerSubscribe)
+	mux.Post("/v"+app.version[0:1]+"/api/create-customer-subscribe", app.CreateCustomerSubscribe)
 
-	mux.Post("/v1/api/auth", app.CreateAuthToken)
-	mux.Post("/v1/api/is-authenticated", app.CheckAuth)
+	mux.Post("/v"+app.version[0:1]+"/api/auth", app.CreateAuthToken)
+	mux.Post("/v"+app.version[0:1]+"/api/is-authenticated", app.CheckAuth)
+
+	mux.Route("/v"+app.version[0:1]+"/api/admin", func(mux chi.Router) {
+		mux.Use(app.Auth)
+
+		mux.Post("/virtual-terminal-succeeded", app.VirtualTerminalPaymentSucceeded)
+	})
 
 	return mux
 }

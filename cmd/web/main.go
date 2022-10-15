@@ -12,6 +12,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/alexedwards/scs/mysqlstore"
 	"github.com/alexedwards/scs/v2"
 	"go.uber.org/zap"
 )
@@ -99,6 +100,8 @@ func main() {
 		logger.Fatal("unable to connect to database ", err)
 	}
 	defer conn.Close()
+
+	session.Store = mysqlstore.New(conn)
 
 	// initialize application
 	app := &application{

@@ -392,3 +392,76 @@ func (app *application) CheckAuth(w http.ResponseWriter, r *http.Request) {
 		app.logger.Error("error writing response: ", zap.Error(err))
 	}
 }
+
+func (app *application) VirtualTerminalPaymentSucceeded(w http.ResponseWriter, r *http.Request) {
+	var txData struct {
+		PaymentAmount   int    `json:"amount"`
+		PaymentCurrency string `json:"currency"`
+		FirstName       string `json:"first_name"`
+		LastName        string `json:"last_name"`
+		Email           string `json:"email"`
+		PaymentIntent   string `json:"payment_intent"`
+		PaymentMethod   string `json:"payment_method"`
+		BankReturnCode  string `json:"bank_return_code"`
+		ExpiryMonth     int    `json:"expiry_month"`
+		ExpiryYear      int    `json:"expiry_year"`
+		LastFour        string `json:"last_four"`
+	}
+
+	err := app.readJSON(w, r, &txData)
+	if err != nil {
+		if err = app.badRequest(w, r, err); err != nil {
+			app.logger.Error(err)
+		}
+		return
+	}
+
+	card := cards.Card{
+		Secret: app.config.stripe.secret,
+		Key:    app.config.stripe.key,
+	}
+
+	pi, err := card.RetrievePaymentIntent(txData.PaymentIntent)
+	if err != nil {
+		if err = app.badRequest(w, r, err); err != nil {
+			app.logger.Error(err)
+		}
+		return
+	}
+
+	pm, err := card.GetPaymentMethod(txData.PaymentMethod)
+	if err != nil {
+		if err = app.badRequest(w, r, err); err != nil {
+			app.logger.Error(err)
+		}
+		return
+	}
+
+	txData.LastFour = pm.Card.Last4
+	txData.ExpiryMonth = int(pm.Card.ExpMonth)
+	txData.ExpiryYear = int(pm.Card.ExpYear)
+
+	tx := models.Transaction{
+		Amount:              txData.PaymentAmount,
+		Currency:            txData.PaymentCurrency,
+		LastFour:            txData.LastFour,
+		ExpiryMonth:         txData.ExpiryMonth,
+		ExpiryYear:          txData.ExpiryYear,
+		BankReturnCode:      pi.Charges.Data[0].ID,
+		TransactionStatusID: 2,
+		PaymentIntent:       txData.PaymentIntent,
+		PaymentMethod:       txData.PaymentMethod,
+	}
+
+	_, err = app.SaveTransaction(tx)
+	if err != nil {
+		if err = app.badRequest(w, r, err); err != nil {
+			app.logger.Error(err)
+		}
+		return
+	}
+
+	if err = app.writeJson(w, http.StatusOK, tx); err != nil {
+		app.logger.Error("error writing response: ", zap.Error(err))
+	}
+}

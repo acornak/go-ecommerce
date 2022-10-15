@@ -12,7 +12,7 @@
 <div class="row">
     <div class="col-md-6 offset-md-3">
         <form
-            action=""
+            action="/login"
             method="post"
             name="login_form"
             id="login-form"
@@ -99,14 +99,14 @@
 
         fetch("{{.API}}/v1/api/auth", requestOptions)
             .then(response => response.json())
-            .then(response => {
-                if (response.error === false) {
-                    localStorage.setItem("token", response.auth_token.token);
-                    localStorage.setItem("token_expiry", response.auth_token.expiry);
+            .then(data => {
+                if (data.error === false) {
+                    localStorage.setItem("token", data.auth_token.token);
+                    localStorage.setItem("token_expiry", data.auth_token.expiry);
                     showLoginSuccess();
-                    location.href = "/";
+                    document.getElementById("login-form").submit();
                 } else {
-                    showLoginError(response.message);
+                    showLoginError(data.message);
                 }
             })
     }
