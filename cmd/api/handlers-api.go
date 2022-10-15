@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/stripe/stripe-go/v73"
 	"go.uber.org/zap"
 )
 
@@ -144,7 +143,6 @@ func (app *application) CreateCustomerSubscribe(w http.ResponseWriter, r *http.R
 	}
 
 	ok := true
-	var subscription *stripe.Subscription
 	txMsg := "Transaction successful"
 
 	stripeCustomer, msg, err := card.CreateCustomer(data.PaymentMethod, data.Email)
@@ -155,7 +153,7 @@ func (app *application) CreateCustomerSubscribe(w http.ResponseWriter, r *http.R
 	}
 
 	if ok {
-		subscription, err = card.SubsctibeToPlan(stripeCustomer, data.Plan, data.Email, data.LastFour, "")
+		_, err := card.SubsctibeToPlan(stripeCustomer, data.Plan, data.Email, data.LastFour, "")
 		if err != nil {
 			txMsg = "failed to subscribe customer to a plan"
 			app.logger.Error(txMsg, ": ", zap.Error(err))
@@ -233,8 +231,6 @@ func (app *application) CreateCustomerSubscribe(w http.ResponseWriter, r *http.R
 		Content: "",
 	}
 
-	app.logger.Info(subscription.ID)
-
 	out, err := json.Marshal(resp)
 	if err != nil {
 		app.logger.Error("failed to get marshal json: ", zap.Error(err))
@@ -281,4 +277,45 @@ func (app *application) SaveOrder(order models.Order) (int, error) {
 	}
 
 	return id, nil
+}
+
+// handler for /auth route
+func (app *application) CreateAuthToken(w http.ResponseWriter, r *http.Request) {
+	var userInput struct {
+		Email    string `json:"email"`
+		Password string `json:"password"`
+	}
+
+	err := app.readJSON(w, r, &userInput)
+	if err != nil {
+		app.logger.Error(err)
+		if err = app.badRequest(w, r, err); err != nil {
+			app.logger.Error(err)
+		}
+		return
+	}
+
+	var payload struct {
+		Error   bool   `json:"error"`
+		Message string `json:"message"`
+	}
+
+	payload.Error = false
+	payload.Message = "Success!"
+
+	out, err := json.Marshal(payload)
+	if err != nil {
+		app.logger.Error("failed to marshal json: ", err)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if _, err = w.Write(out); err != nil {
+		app.logger.Error("error writing response: ", zap.Error(err))
+	}
+
+	if err = app.writeJson(w, http.StatusOK, payload); err != nil {
+		app.logger.Error("error writing response: ", zap.Error(err))
+	}
+
 }
