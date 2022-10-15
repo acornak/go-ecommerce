@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"go-stripe/internal/cards"
 	"go-stripe/internal/models"
 	"net/http"
@@ -231,6 +232,7 @@ func (app *application) CreateCustomerSubscribe(w http.ResponseWriter, r *http.R
 		Content: "",
 	}
 
+	// TODO: use writeJson
 	out, err := json.Marshal(resp)
 	if err != nil {
 		app.logger.Error("failed to get marshal json: ", zap.Error(err))
@@ -295,24 +297,39 @@ func (app *application) CreateAuthToken(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	var payload struct {
-		Error   bool   `json:"error"`
-		Message string `json:"message"`
-	}
-
-	payload.Error = false
-	payload.Message = "Success!"
-
-	out, err := json.Marshal(payload)
+	user, err := app.DB.GetUserByEmail(userInput.Email)
 	if err != nil {
-		app.logger.Error("failed to marshal json: ", err)
+		if err = app.invalidCredentials(w); err != nil {
+			app.logger.Error(err)
+		}
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	if _, err = w.Write(out); err != nil {
-		app.logger.Error("error writing response: ", zap.Error(err))
+	validPassword, err := app.passwordMatches(user.Password, userInput.Password)
+	if err != nil || !validPassword {
+		if err = app.invalidCredentials(w); err != nil {
+			app.logger.Error(err)
+		}
+		return
 	}
+
+	token, err := models.GenerateToken(user.ID, 24*time.Hour, models.ScopeAuthentication)
+	if err != nil {
+		if err = app.badRequest(w, r, err); err != nil {
+			app.logger.Error(err)
+		}
+		return
+	}
+
+	var payload struct {
+		Error   bool          `json:"error"`
+		Message string        `json:"message"`
+		Token   *models.Token `json:"auth_token"`
+	}
+
+	payload.Error = false
+	payload.Message = fmt.Sprintf("token for %s created", userInput.Email)
+	payload.Token = token
 
 	if err = app.writeJson(w, http.StatusOK, payload); err != nil {
 		app.logger.Error("error writing response: ", zap.Error(err))
