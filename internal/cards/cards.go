@@ -49,6 +49,7 @@ func (c *Card) CreatePaymentIntent(currency string, amount int) (*stripe.Payment
 }
 
 // gets the payment method by payment intent id
+
 func (c *Card) GetPaymentMethod(s string) (*stripe.PaymentMethod, error) {
 	stripe.Key = c.Secret
 
