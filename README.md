@@ -19,6 +19,9 @@
 ## Migrate Database
 
 - Soda: https://gobuffalo.io/documentation/database/soda/
-- scripts are in `migrations` folder
+- migration scripts are in `migrations` folder
 
-TODO: unify err messages
+## TODO:
+
+- unify err messages
+- tests

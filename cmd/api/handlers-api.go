@@ -2,11 +2,13 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"go-stripe/internal/cards"
 	"go-stripe/internal/models"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -321,6 +323,14 @@ func (app *application) CreateAuthToken(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	err = app.DB.InsertToken(token, user)
+	if err != nil {
+		if err = app.badRequest(w, r, err); err != nil {
+			app.logger.Error(err)
+		}
+		return
+	}
+
 	var payload struct {
 		Error   bool          `json:"error"`
 		Message string        `json:"message"`
@@ -335,4 +345,50 @@ func (app *application) CreateAuthToken(w http.ResponseWriter, r *http.Request) 
 		app.logger.Error("error writing response: ", zap.Error(err))
 	}
 
+}
+
+func (app *application) authenticateToken(r *http.Request) (*models.User, error) {
+	authorizationHeader := r.Header.Get("Authorization")
+	if authorizationHeader == "" {
+		return nil, errors.New("no authorization header received")
+	}
+
+	headerParts := strings.Split(authorizationHeader, " ")
+	if len(headerParts) != 2 || headerParts[0] != "Bearer" {
+		return nil, errors.New("no authorization header received")
+	}
+
+	token := headerParts[1]
+	if len(token) != 26 {
+		return nil, errors.New("invalid authentication token")
+	}
+
+	user, err := app.DB.GetUserForToken(token)
+	if err != nil {
+		return nil, errors.New("invalid authentication token")
+	}
+
+	return user, nil
+}
+
+func (app *application) CheckAuth(w http.ResponseWriter, r *http.Request) {
+	user, err := app.authenticateToken(r)
+	if err != nil {
+		if err = app.invalidCredentials(w); err != nil {
+			app.logger.Error(err)
+		}
+		return
+	}
+
+	var payload struct {
+		Error   bool   `json:"error"`
+		Message string `json:"message"`
+	}
+
+	payload.Error = false
+	payload.Message = fmt.Sprintf("authenticated user %s", user.Email)
+
+	if err = app.writeJson(w, http.StatusOK, payload); err != nil {
+		app.logger.Error("error writing response: ", zap.Error(err))
+	}
 }
