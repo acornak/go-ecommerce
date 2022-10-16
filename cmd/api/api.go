@@ -1,13 +1,13 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"go-stripe/internal/driver"
 	"go-stripe/internal/models"
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
 
 	"go.uber.org/zap"
@@ -25,6 +25,14 @@ type config struct {
 		secret string
 		key    string
 	}
+	smtp struct {
+		host     string
+		port     int
+		username string
+		password string
+	}
+	secretKey string
+	frontend  string
 }
 
 type application struct {
@@ -64,13 +72,28 @@ func main() {
 	// setup application config
 	var cfg config
 
-	flag.IntVar(&cfg.port, "port", 4001, "Server port to listen on")
-	flag.StringVar(&cfg.env, "env", "develop", "Application environment {develop|prod|maintenance}")
-	flag.Parse()
+	port, err := strconv.Atoi(os.Getenv("BACKEND_PORT"))
+	if err != nil {
+		logger.Fatal("unable to get port from env vars: ", err)
+	}
+	cfg.port = port
+	cfg.env = os.Getenv("ENV")
 
 	cfg.db.dsn = os.Getenv("DSN")
 	cfg.stripe.key = os.Getenv("STRIPE_KEY")
 	cfg.stripe.secret = os.Getenv("STRIPE_SECRET")
+
+	cfg.smtp.host = os.Getenv("SMTP_HOST")
+	smtpPort, err := strconv.Atoi(os.Getenv("SMTP_PORT"))
+	if err != nil {
+		logger.Fatal("unable to get smtp port from env vars: ", err)
+	}
+	cfg.smtp.port = smtpPort
+	cfg.smtp.username = os.Getenv("SMTP_USERNAME")
+	cfg.smtp.password = os.Getenv("SMTP_PASSWORD")
+
+	cfg.secretKey = os.Getenv("SECRET_KEY")
+	cfg.frontend = os.Getenv("FRONTEND_URL") + ":" + os.Getenv("FRONTEND_PORT")
 
 	// establish database connection
 	conn, err := driver.OpenDB(cfg.db.dsn)
@@ -89,7 +112,6 @@ func main() {
 
 	// serve application
 	if err := app.serve(); err != nil {
-		app.logger.Fatal("unable to start the application ", err)
+		logger.Fatal("unable to start the application ", err)
 	}
-
 }

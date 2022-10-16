@@ -1,11 +1,21 @@
 # E-commerce project using Go
 
+## How to run it
+
+- Make sure mysql server is running `mysql.server start`
+- Run command `make start` or `make restart`
+
 ## Tech stack
 
 - Go: https://go.dev/doc/install
 - MariaDB: https://mariadb.com/kb/en/installing-mariadb-on-macos-using-homebrew/
 - Make: https://www.gnu.org/software/make/
 - Stripe account (free): https://stripe.com
+
+## Mail service
+
+- Mailtrap: https://mailtrap.io/
+- Mailhog: https://mailtrap.io/blog/mailhog-explained/
 
 ## SQL Editor
 

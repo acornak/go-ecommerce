@@ -1,8 +1,11 @@
 package main
 
 import (
+	"fmt"
 	"go-stripe/internal/cards"
+	"go-stripe/internal/encryption"
 	"go-stripe/internal/models"
+	"go-stripe/internal/urlsigner"
 	"net/http"
 	"strconv"
 	"time"
@@ -321,4 +324,58 @@ func (app *application) Logout(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(w, r, "/login", http.StatusSeeOther)
+}
+
+// forgot password handler
+func (app *application) ForgotPassword(w http.ResponseWriter, r *http.Request) {
+	if err := app.renderTemplate(w, r, "forgot-password", &templateData{}); err != nil {
+		app.logger.Error("unable to render template: ", zap.Error(err))
+		return
+	}
+}
+
+// reset password handler
+func (app *application) ShowResetPassword(w http.ResponseWriter, r *http.Request) {
+	email := r.URL.Query().Get("email")
+	theURL := r.RequestURI
+	testURL := fmt.Sprintf("%s%s", app.config.frontend, theURL)
+
+	signer := urlsigner.Signer{
+		Secret: []byte(app.config.secretKey),
+	}
+
+	valid := signer.VerityToken(testURL)
+	if !valid {
+		app.logger.Error("invalid url - tampering detected")
+		if _, err := w.Write([]byte("invalid")); err != nil {
+			app.logger.Error("error writing response: ", zap.Error(err))
+		}
+	}
+
+	expired := signer.Expired(testURL, 5)
+	if expired {
+		app.logger.Error("invalid url - tampering detected")
+		if _, err := w.Write([]byte("link expired")); err != nil {
+			app.logger.Error("error writing response: ", zap.Error(err))
+		}
+	}
+
+	encryptor := encryption.Encryption{
+		Key: []byte(app.config.secretKey),
+	}
+
+	encryptedEmail, err := encryptor.Encrypt(email)
+	if err != nil {
+		app.logger.Error("encryption failed")
+		return
+	}
+
+	data := map[string]any{
+		"email": encryptedEmail,
+	}
+
+	if err := app.renderTemplate(w, r, "reset-password", &templateData{Data: data}); err != nil {
+		app.logger.Error("unable to render template: ", zap.Error(err))
+		return
+	}
 }

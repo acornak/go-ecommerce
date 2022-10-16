@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/gob"
-	"flag"
 	"fmt"
 	"go-stripe/internal/driver"
 	"go-stripe/internal/models"
@@ -10,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/alexedwards/scs/mysqlstore"
@@ -34,6 +34,8 @@ type config struct {
 		secret string
 		key    string
 	}
+	secretKey string
+	frontend  string
 }
 
 type application struct {
@@ -82,14 +84,21 @@ func main() {
 	// setup application config
 	var cfg config
 
-	flag.IntVar(&cfg.port, "port", 4000, "Server port to listen on")
-	flag.StringVar(&cfg.env, "env", "develop", "Application environment {develop|prod}")
-	flag.StringVar(&cfg.api, "api", "http://localhost:4001", "URL to API")
-	flag.Parse()
+	port, err := strconv.Atoi(os.Getenv("FRONTEND_PORT"))
+	if err != nil {
+		logger.Fatal("unable to get port from env vars: ", err)
+	}
+	cfg.port = port
+	cfg.env = os.Getenv("ENV")
+
+	cfg.api = os.Getenv("BACKEND_URL") + ":" + os.Getenv("BACKEND_PORT")
 
 	cfg.db.dsn = os.Getenv("DSN")
 	cfg.stripe.key = os.Getenv("STRIPE_KEY")
 	cfg.stripe.secret = os.Getenv("STRIPE_SECRET")
+
+	cfg.secretKey = os.Getenv("SECRET_KEY")
+	cfg.frontend = os.Getenv("FRONTEND_URL") + ":" + os.Getenv("FRONTEND_PORT")
 
 	// setup template data
 	tc := make(map[string]*template.Template)

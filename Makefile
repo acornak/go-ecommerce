@@ -1,10 +1,19 @@
+export ENV := develop
 export DSN := username:password@tcp(localhost:3306)/widgets?parseTime=true&tls=false
 export STRIPE_SECRET := sk_test_51LksyQJQyyUkN3mGazFaD2gdUk3BeriB0MCxp5zJ88by7jyhYmo6DFm438xfXeBdDMbz3Afww1IjovguyWHcqJau009QFSGxgX
 export STRIPE_KEY := pk_test_51LksyQJQyyUkN3mGFxWqaWKm8qrOlgBWqeNgzChGgfRAFigvW5fPqKNhovBbrUQkywFmu0v0InjNzxgQe2CxODHm001BixUbJi
+export SMTP_HOST := smtp.mailtrap.io
+export SMTP_PORT := 25
+export SMTP_USERNAME := 3839bb225b80a8
+export SMTP_PASSWORD := e20e26115223d9
+export SECRET_KEY := tv48oKVUjqXWRqasNBSMsbtAU7HaSiJk
+export FRONTEND_PORT := 4000
+export BACKEND_PORT := 4001
+export FRONTEND_URL := http://localhost
+export BACKEND_URL := http://localhost
+
 FRONTEND_BINARY=frontend
 BACKEND_BINARY=backend
-FRONTEND_PORT=4000
-BACKEND_PORT=4001
 
 ## clean all binaries and run go clean
 clean:
@@ -27,7 +36,6 @@ build_back:
 
 ## start the application
 start: start_front start_back
-	@mysql.server start
 
 ## start the front end
 start_front: build_front
@@ -48,13 +56,13 @@ stop: stop_front stop_back
 ## stop the front end
 stop_front:
 	@echo "Stopping front end..."
-	@-pkill -SIGTERM -f "frontend -port=${FRONTEND_PORT}"
+	@-pkill -SIGTERM -f "frontend"
 	@echo "Front end stopped!"
 
 ## stop the back end
 stop_back:
 	@echo "Stopping back end..."
-	@-pkill -SIGTERM -f "backend -port=${BACKEND_PORT}"
+	@-pkill -SIGTERM -f "backend"
 	@echo "Back end stopped!"
 
 ## stop the front end and then start
