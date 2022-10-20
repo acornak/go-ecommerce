@@ -595,3 +595,33 @@ func (app *application) ResetPassword(w http.ResponseWriter, r *http.Request) {
 		app.logger.Error("error writing response: ", zap.Error(err))
 	}
 }
+
+func (app *application) AllSales(w http.ResponseWriter, r *http.Request) {
+	allSales, err := app.DB.GetAllOrders()
+	if err != nil {
+		app.logger.Error(err)
+		if err = app.badRequest(w, r, err); err != nil {
+			app.logger.Error("error getting all orders from the database: ", zap.Error(err))
+		}
+		return
+	}
+
+	if err := app.writeJson(w, http.StatusOK, allSales); err != nil {
+		app.logger.Error("error writing response: ", zap.Error(err))
+	}
+}
+
+func (app *application) AllSubscriptions(w http.ResponseWriter, r *http.Request) {
+	allSubscriptions, err := app.DB.GetAllSubscriptions()
+	if err != nil {
+		app.logger.Error(err)
+		if err = app.badRequest(w, r, err); err != nil {
+			app.logger.Error("error getting all orders from the database: ", zap.Error(err))
+		}
+		return
+	}
+
+	if err := app.writeJson(w, http.StatusOK, allSubscriptions); err != nil {
+		app.logger.Error("error writing response: ", zap.Error(err))
+	}
+}

@@ -45,6 +45,12 @@ func (app *application) addDefaultData(td *templateData, r *http.Request) *templ
 	td.StripePublishableKey = app.config.stripe.key
 	td.StripeSecretKey = app.config.stripe.secret
 
+	if app.Session.Exists(r.Context(), "userID") {
+		td.IsAuthenticated = 1
+	} else {
+		td.IsAuthenticated = 0
+	}
+
 	return td
 }
 
@@ -54,17 +60,11 @@ func (app *application) renderTemplate(w http.ResponseWriter, r *http.Request, p
 	var err error
 
 	templateToRender := fmt.Sprintf("templates/%s.page.gohtml", page)
-	_, templateInMap := app.templateCache[templateToRender]
 
-	// handle caching pages
-	if app.config.env == "prod" && templateInMap {
-		t = app.templateCache[templateToRender]
-	} else {
-		t, err = app.parseTemplate(partials, page, templateToRender)
-		if err != nil {
-			app.logger.Error("failed to parse template: ", zap.Error(err))
-			return err
-		}
+	t, err = app.parseTemplate(partials, page, templateToRender)
+	if err != nil {
+		app.logger.Error("failed to parse template: ", zap.Error(err))
+		return err
 	}
 
 	if td == nil {
