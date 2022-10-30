@@ -21,7 +21,10 @@ All Sales
 {{end}}
 
 {{define "js"}}
+{{template "format-currency" .}}
+
 <script>
+document.addEventListener("DOMContentLoaded", function() {
     let token = localStorage.getItem("token");
     let tbody = document.getElementById("sales-table").getElementsByTagName("tbody")[0];
 
@@ -66,15 +69,7 @@ All Sales
             newCell.innerHTML = "No data available";
         }
     })
-
-    function formatCurrency(amount, currency) {
-        let c = parseFloat(amount) / 100
-        return c.toLocaleString("sk-SK", {
-            style: "currency",
-            currency: currency.toUpperCase(),
-        })
-    }
-
+})
 </script>
 
 {{end}}

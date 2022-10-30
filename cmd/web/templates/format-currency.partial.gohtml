@@ -1,0 +1,11 @@
+{{define "format-currency"}}
+<script>
+    function formatCurrency(amount, currency) {
+        let c = parseFloat(amount) / 100
+        return c.toLocaleString("sk-SK", {
+            style: "currency",
+            currency: currency.toUpperCase(),
+        })
+    }
+</script>
+{{end}}

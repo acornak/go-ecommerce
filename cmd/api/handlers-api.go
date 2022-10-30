@@ -629,3 +629,28 @@ func (app *application) AllSubscriptions(w http.ResponseWriter, r *http.Request)
 		app.logger.Error("error writing response: ", zap.Error(err))
 	}
 }
+
+func (app *application) GetSale(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	orderID, err := strconv.Atoi(id)
+	if err != nil {
+		app.logger.Error(err)
+		if err = app.badRequest(w, r, err); err != nil {
+			app.logger.Error("error getting order id: ", zap.Error(err))
+		}
+		return
+	}
+
+	order, err := app.DB.GetOrderByID(orderID)
+	if err != nil {
+		app.logger.Error(err)
+		if err = app.badRequest(w, r, err); err != nil {
+			app.logger.Error("error getting order from database: ", zap.Error(err))
+		}
+		return
+	}
+
+	if err := app.writeJson(w, http.StatusOK, order); err != nil {
+		app.logger.Error("error writing response: ", zap.Error(err))
+	}
+}

@@ -238,7 +238,6 @@ document.getElementById("charge-amount").addEventListener("change", (e) => {
         fetch("{{.API}}/v1/api/admin/virtual-terminal-succeeded", requestOptions)
         .then(response => response.json())
         .then(function(data) {
-            console.log(data);
             processing.classList.add("d-none");
             showCardSuccess();
             document.getElementById("bank-return-code").innerHTML = data.bank_return_code;

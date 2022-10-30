@@ -381,14 +381,38 @@ func (app *application) ShowResetPassword(w http.ResponseWriter, r *http.Request
 }
 
 func (app *application) AllSales(w http.ResponseWriter, r *http.Request) {
-	if err := app.renderTemplate(w, r, "all-sales", &templateData{}); err != nil {
+	if err := app.renderTemplate(w, r, "all-sales", &templateData{}, "format-currency"); err != nil {
 		app.logger.Error("unable to render template: ", zap.Error(err))
 		return
 	}
 }
 
 func (app *application) AllSubscriptions(w http.ResponseWriter, r *http.Request) {
-	if err := app.renderTemplate(w, r, "all-subscriptions", &templateData{}); err != nil {
+	if err := app.renderTemplate(w, r, "all-subscriptions", &templateData{}, "format-currency"); err != nil {
+		app.logger.Error("unable to render template: ", zap.Error(err))
+		return
+	}
+}
+
+func (app *application) ShowSale(w http.ResponseWriter, r *http.Request) {
+	stringMap := map[string]string{
+		"title":  "Sale",
+		"cancel": "/admin/all-sales",
+	}
+
+	if err := app.renderTemplate(w, r, "sale", &templateData{StringMap: stringMap}, "format-currency"); err != nil {
+		app.logger.Error("unable to render template: ", zap.Error(err))
+		return
+	}
+}
+
+func (app *application) ShowSubscription(w http.ResponseWriter, r *http.Request) {
+	stringMap := map[string]string{
+		"title":  "Subscription",
+		"cancel": "/admin/all-subscriptions",
+	}
+
+	if err := app.renderTemplate(w, r, "sale", &templateData{StringMap: stringMap}, "format-currency"); err != nil {
 		app.logger.Error("unable to render template: ", zap.Error(err))
 		return
 	}
