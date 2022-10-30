@@ -159,8 +159,12 @@ func (app *application) CreateCustomerSubscribe(w http.ResponseWriter, r *http.R
 		txMsg = msg
 	}
 
+	var subscriptionID string
+
 	if ok {
-		_, err := card.SubsctibeToPlan(stripeCustomer, data.Plan, data.Email, data.LastFour, "")
+		subscription, err := card.SubsctibeToPlan(stripeCustomer, data.Plan, data.Email, data.LastFour, "")
+		subscriptionID = subscription.ID
+
 		if err != nil {
 			txMsg = "failed to subscribe customer to a plan"
 			app.logger.Error(txMsg, ": ", zap.Error(err))
@@ -202,7 +206,7 @@ func (app *application) CreateCustomerSubscribe(w http.ResponseWriter, r *http.R
 				ExpiryYear:          data.ExpiryYear,
 				TransactionStatusID: 2,
 				PaymentMethod:       data.PaymentMethod,
-				PaymentIntent:       data.PaymentIntent,
+				PaymentIntent:       subscriptionID,
 			}
 
 			txID, err := app.SaveTransaction(tx)
@@ -717,7 +721,63 @@ func (app *application) RefundCharge(w http.ResponseWriter, r *http.Request) {
 		Message string `json:"message"`
 	}
 
+	resp.Error = false
+	resp.Message = "Charge refunded"
+
 	if err := app.writeJson(w, http.StatusOK, resp); err != nil {
 		app.logger.Error("error writing response: ", zap.Error(err))
 	}
+}
+
+func (app *application) CancelSubscription(w http.ResponseWriter, r *http.Request) {
+	var subToCancel struct {
+		ID            int    `json:"id"`
+		PaymentIntent string `json:"payment_intent"`
+		Currency      string `json:"currency"`
+	}
+
+	err := app.readJSON(w, r, &subToCancel)
+	if err != nil {
+		app.logger.Error(err)
+		if err = app.badRequest(w, r, err); err != nil {
+			app.logger.Error(err)
+		}
+		return
+	}
+
+	card := cards.Card{
+		Secret:   app.config.stripe.secret,
+		Key:      app.config.stripe.key,
+		Currency: subToCancel.Currency,
+	}
+
+	if err = card.CancelSubscription(subToCancel.PaymentIntent); err != nil {
+		app.logger.Error("error cancelling subscription: ", err)
+		if err = app.badRequest(w, r, err); err != nil {
+			app.logger.Error(err)
+		}
+		return
+	}
+
+	if err = app.DB.UpdateOrderStatus(subToCancel.ID, 3); err != nil {
+		errResp := errors.New("the subscription was cancelled, but the database could not be updated")
+		app.logger.Error(errResp)
+		if err = app.badRequest(w, r, errResp); err != nil {
+			app.logger.Error(err)
+		}
+		return
+	}
+
+	var resp struct {
+		Error   bool   `json:"error"`
+		Message string `json:"message"`
+	}
+
+	resp.Error = false
+	resp.Message = "Subscription cancelled"
+
+	if err := app.writeJson(w, http.StatusOK, resp); err != nil {
+		app.logger.Error("error writing response: ", zap.Error(err))
+	}
+
 }

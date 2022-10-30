@@ -396,8 +396,12 @@ func (app *application) AllSubscriptions(w http.ResponseWriter, r *http.Request)
 
 func (app *application) ShowSale(w http.ResponseWriter, r *http.Request) {
 	stringMap := map[string]string{
-		"title":  "Sale",
-		"cancel": "/admin/all-sales",
+		"title":        "Sale",
+		"cancel":       "/admin/all-sales",
+		"refund-url":   "/v1/api/admin/refund",
+		"refund-btn":   "Refund Order",
+		"alert-text":   "Refunded",
+		"message-text": "Charge refunded",
 	}
 
 	if err := app.renderTemplate(w, r, "sale", &templateData{StringMap: stringMap}, "format-currency"); err != nil {
@@ -408,8 +412,12 @@ func (app *application) ShowSale(w http.ResponseWriter, r *http.Request) {
 
 func (app *application) ShowSubscription(w http.ResponseWriter, r *http.Request) {
 	stringMap := map[string]string{
-		"title":  "Subscription",
-		"cancel": "/admin/all-subscriptions",
+		"title":        "Subscription",
+		"cancel":       "/admin/all-subscriptions",
+		"refund-url":   "/v1/api/admin/cancel-subscription",
+		"refund-btn":   "Cancel Subscription",
+		"alert-text":   "Cancelled",
+		"message-text": "Subscription cancelled",
 	}
 
 	if err := app.renderTemplate(w, r, "sale", &templateData{StringMap: stringMap}, "format-currency"); err != nil {
