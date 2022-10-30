@@ -604,7 +604,7 @@ func (app *application) AllSales(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		app.logger.Error(err)
 		if err = app.badRequest(w, r, err); err != nil {
-			app.logger.Error("error getting all orders from the database: ", zap.Error(err))
+			app.logger.Error(err)
 		}
 		return
 	}
@@ -620,7 +620,7 @@ func (app *application) AllSubscriptions(w http.ResponseWriter, r *http.Request)
 	if err != nil {
 		app.logger.Error(err)
 		if err = app.badRequest(w, r, err); err != nil {
-			app.logger.Error("error getting all orders from the database: ", zap.Error(err))
+			app.logger.Error(err)
 		}
 		return
 	}
@@ -636,7 +636,7 @@ func (app *application) GetSale(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		app.logger.Error(err)
 		if err = app.badRequest(w, r, err); err != nil {
-			app.logger.Error("error getting order id: ", zap.Error(err))
+			app.logger.Error(err)
 		}
 		return
 	}
@@ -645,12 +645,79 @@ func (app *application) GetSale(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		app.logger.Error(err)
 		if err = app.badRequest(w, r, err); err != nil {
-			app.logger.Error("error getting order from database: ", zap.Error(err))
+			app.logger.Error(err)
 		}
 		return
 	}
 
 	if err := app.writeJson(w, http.StatusOK, order); err != nil {
+		app.logger.Error("error writing response: ", zap.Error(err))
+	}
+}
+
+func (app *application) RefundCharge(w http.ResponseWriter, r *http.Request) {
+	var chargeToRefund struct {
+		ID            int    `json:"id"`
+		PaymentIntent string `json:"payment_intent"`
+		Amount        int    `json:"amount"`
+		Currency      string `json:"currency"`
+	}
+
+	err := app.readJSON(w, r, &chargeToRefund)
+	if err != nil {
+		app.logger.Error(err)
+		if err = app.badRequest(w, r, err); err != nil {
+			app.logger.Error(err)
+		}
+		return
+	}
+
+	order, err := app.DB.GetOrderByID(chargeToRefund.ID)
+	if err != nil {
+		app.logger.Error(err)
+		if err = app.badRequest(w, r, err); err != nil {
+			app.logger.Error(err)
+		}
+		return
+	}
+
+	if order.Amount != chargeToRefund.Amount {
+		if err = app.badRequest(w, r, errors.New("amounts do not match")); err != nil {
+			app.logger.Error(err)
+		}
+		return
+	}
+
+	card := cards.Card{
+		Secret:   app.config.stripe.secret,
+		Key:      app.config.stripe.key,
+		Currency: chargeToRefund.Currency,
+	}
+
+	err = card.Refund(chargeToRefund.PaymentIntent, chargeToRefund.Amount)
+	if err != nil {
+		app.logger.Error("error refunding payment: ", err)
+		if err = app.badRequest(w, r, err); err != nil {
+			app.logger.Error(err)
+		}
+		return
+	}
+
+	if err = app.DB.UpdateOrderStatus(chargeToRefund.ID, 2); err != nil {
+		errResp := errors.New("the charge was refunded, but the database could not be updated")
+		app.logger.Error(errResp)
+		if err = app.badRequest(w, r, errResp); err != nil {
+			app.logger.Error(err)
+		}
+		return
+	}
+
+	var resp struct {
+		Error   bool   `json:"error"`
+		Message string `json:"message"`
+	}
+
+	if err := app.writeJson(w, http.StatusOK, resp); err != nil {
 		app.logger.Error("error writing response: ", zap.Error(err))
 	}
 }
