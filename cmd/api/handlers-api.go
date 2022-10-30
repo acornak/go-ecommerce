@@ -604,7 +604,12 @@ func (app *application) ResetPassword(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *application) AllSales(w http.ResponseWriter, r *http.Request) {
-	allSales, err := app.DB.GetAllOrders()
+	var userInput struct {
+		PageSize    int `json:"page_size"`
+		CurrentPage int `json:"page"`
+	}
+
+	err := app.readJSON(w, r, &userInput)
 	if err != nil {
 		app.logger.Error(err)
 		if err = app.badRequest(w, r, err); err != nil {
@@ -613,13 +618,50 @@ func (app *application) AllSales(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := app.writeJson(w, http.StatusOK, allSales); err != nil {
+	allSales, lastPage, totalRecords, err := app.DB.GetAllOrders(userInput.PageSize, userInput.CurrentPage)
+	if err != nil {
+		app.logger.Error(err)
+		if err = app.badRequest(w, r, err); err != nil {
+			app.logger.Error(err)
+		}
+		return
+	}
+
+	var resp struct {
+		CurrentPage  int             `json:"current_page"`
+		PageSize     int             `json:"page_size"`
+		LastPage     int             `json:"last_page"`
+		TotalRecords int             `json:"total_records"`
+		Orders       []*models.Order `json:"orders"`
+	}
+
+	resp.CurrentPage = userInput.CurrentPage
+	resp.PageSize = userInput.PageSize
+	resp.LastPage = lastPage
+	resp.TotalRecords = totalRecords
+	resp.Orders = allSales
+
+	if err := app.writeJson(w, http.StatusOK, resp); err != nil {
 		app.logger.Error("error writing response: ", zap.Error(err))
 	}
 }
 
 func (app *application) AllSubscriptions(w http.ResponseWriter, r *http.Request) {
-	allSubscriptions, err := app.DB.GetAllSubscriptions()
+	var userInput struct {
+		PageSize    int `json:"page_size"`
+		CurrentPage int `json:"page"`
+	}
+
+	err := app.readJSON(w, r, &userInput)
+	if err != nil {
+		app.logger.Error(err)
+		if err = app.badRequest(w, r, err); err != nil {
+			app.logger.Error(err)
+		}
+		return
+	}
+
+	allSubscriptions, lastPage, totalRecords, err := app.DB.GetAllSubscriptions(userInput.PageSize, userInput.CurrentPage)
 
 	if err != nil {
 		app.logger.Error(err)
@@ -629,7 +671,21 @@ func (app *application) AllSubscriptions(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	if err := app.writeJson(w, http.StatusOK, allSubscriptions); err != nil {
+	var resp struct {
+		CurrentPage  int             `json:"current_page"`
+		PageSize     int             `json:"page_size"`
+		LastPage     int             `json:"last_page"`
+		TotalRecords int             `json:"total_records"`
+		Orders       []*models.Order `json:"orders"`
+	}
+
+	resp.CurrentPage = userInput.CurrentPage
+	resp.PageSize = userInput.PageSize
+	resp.LastPage = lastPage
+	resp.TotalRecords = totalRecords
+	resp.Orders = allSubscriptions
+
+	if err := app.writeJson(w, http.StatusOK, resp); err != nil {
 		app.logger.Error("error writing response: ", zap.Error(err))
 	}
 }

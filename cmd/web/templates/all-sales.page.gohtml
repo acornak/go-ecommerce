@@ -19,15 +19,55 @@ All Sales
         <tbody>
         </tbody>
     </table>
+
+    <nav>
+        <ul id="paginator" class="pagination">
+
+        </ul>
+    </nav>
 {{end}}
 
 {{define "js"}}
 {{template "format-currency" .}}
 
 <script>
-document.addEventListener("DOMContentLoaded", function() {
-    let token = localStorage.getItem("token");
+let currentPage = 1;
+let pageSize = 5;
+let token = localStorage.getItem("token");
+
+function paginator(pages, cp) {
+    let p = document.getElementById("paginator");
+
+    let html = `<li class="page-item"><a href="#!" class="page-link pager" data-page="${cp - 1}">&lt;</a></li>`;
+
+    for (var i = 0; i <= pages; i++) {
+        html += `<li class="page-item"><a href="#!" class="page-link pager" data-page="${i + 1}">${i + 1}</a></li>`;
+    }
+
+    html += `<li class="page-item"><a href="#!" class="page-link pager" data-page="${cp + 1}">&gt;</a></li>`;
+
+    p.innerHTML = html;
+
+    let pageBtns = document.getElementsByClassName("pager");
+
+    for (var j = 0; j < pageBtns.length; j++) {
+        pageBtns[j].addEventListener("click", function(e) {
+            let desiredPage = e.target.getAttribute("data-page");
+            if ((desiredPage > 0) && (desiredPage <= pages + 1)) {
+                updateTable(pageSize, desiredPage);
+            };
+        });
+    };
+};
+
+function updateTable(ps, cp) {
     let tbody = document.getElementById("sales-table").getElementsByTagName("tbody")[0];
+    tbody.innerHTML = "";
+
+    let payload = {
+        page_size: parseInt(ps, 10),
+        page: parseInt(cp, 10),
+    }
 
     const requestOptions = {
         method: "post",
@@ -35,14 +75,15 @@ document.addEventListener("DOMContentLoaded", function() {
             "Accept": "application/json",
             "Content-Type": "application/json",
             "Authorization": "Bearer " + token,
-        }
+        },
+        body: JSON.stringify(payload),
     }
 
     fetch("{{.API}}/v1/api/admin/all-sales", requestOptions)
     .then(response => response.json())
     .then(function(data) {
-        if (data) {
-            data.forEach((i) => {
+        if (data.orders) {
+            data.orders.forEach((i) => {
                 let newRow = tbody.insertRow();
                 let newCell = newRow.insertCell();
 
@@ -67,7 +108,9 @@ document.addEventListener("DOMContentLoaded", function() {
                 } else {
                     newCell.innerHTML = `<span class="badge bg-success">Charged</span>`
                 }
-            })
+            });
+
+            paginator(data.last_page, data.current_page);
         } else {
             let newRow = tbody.insertRow();
             let newCell = newRow.insertCell();
@@ -76,6 +119,10 @@ document.addEventListener("DOMContentLoaded", function() {
             newCell.innerHTML = "No data available";
         }
     })
+};
+
+document.addEventListener("DOMContentLoaded", function() {
+    updateTable(pageSize, currentPage)
 })
 </script>
 
