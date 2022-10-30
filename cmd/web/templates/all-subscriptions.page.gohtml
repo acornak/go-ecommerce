@@ -7,8 +7,74 @@ All Subscriptions
 {{ define "content"}}
     <h2 class="mt-5">All Subscriptions</h2>
     <hr>
+
+    <table id="subscriptions-table" class="table table-striped">
+        <thead>
+            <th>Transaction</th>
+            <th>Customer</th>
+            <th>Product</th>
+            <th>Amount</th>
+        </thead>
+        <tbody>
+        </tbody>
+    </table>
 {{end}}
 
 {{define "js"}}
+<script>
+    let token = localStorage.getItem("token");
+    let tbody = document.getElementById("subscriptions-table").getElementsByTagName("tbody")[0];
+
+    const requestOptions = {
+        method: "post",
+        headers: {
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + token,
+        }
+    }
+
+    fetch("{{.API}}/v1/api/admin/all-subscriptions", requestOptions)
+    .then(response => response.json())
+    .then(function(data) {
+        if (data) {
+            data.forEach((i) => {
+                let newRow = tbody.insertRow();
+                let newCell = newRow.insertCell();
+
+                newCell.innerHTML = `<a href="/admin/subscription/${i.id}">Order ${i.id}</a>`
+
+                newCell = newRow.insertCell();
+                let item = document.createTextNode(i.customer.first_name + " " + i.customer.last_name);
+                newCell.appendChild(item);
+
+                newCell = newRow.insertCell();
+                item = document.createTextNode(i.widget.name);
+                newCell.appendChild(item);
+
+                let curr = formatCurrency(i.transaction.amount, i.transaction.currency)
+                console.log(i)
+                newCell = newRow.insertCell();
+                item = document.createTextNode(curr + "/month");
+                newCell.appendChild(item);
+            })
+        } else {
+            let newRow = tbody.insertRow();
+            let newCell = newRow.insertCell();
+
+            newCell.setAttribute("colspan", "4");
+            newCell.innerHTML = "No data available";
+        }
+    })
+
+    function formatCurrency(amount, currency) {
+        let c = parseFloat(amount) / 100
+        return c.toLocaleString("sk-SK", {
+            style: "currency",
+            currency: currency.toUpperCase(),
+        })
+    }
+
+</script>
 
 {{end}}

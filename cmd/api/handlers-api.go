@@ -22,6 +22,7 @@ type stripePayload struct {
 	Currency      string `json:"currency"`
 	Amount        string `json:"amount"`
 	PaymentMethod string `json:"payment_method"`
+	PaymentIntent string `json:"payment_intent"`
 	Email         string `json:"email"`
 	CardBrand     string `json:"card_brand"`
 	ExpiryMonth   int    `json:"exp_month"`
@@ -200,6 +201,8 @@ func (app *application) CreateCustomerSubscribe(w http.ResponseWriter, r *http.R
 				ExpiryMonth:         data.ExpiryMonth,
 				ExpiryYear:          data.ExpiryYear,
 				TransactionStatusID: 2,
+				PaymentMethod:       data.PaymentMethod,
+				PaymentIntent:       data.PaymentIntent,
 			}
 
 			txID, err := app.SaveTransaction(tx)
@@ -613,6 +616,7 @@ func (app *application) AllSales(w http.ResponseWriter, r *http.Request) {
 
 func (app *application) AllSubscriptions(w http.ResponseWriter, r *http.Request) {
 	allSubscriptions, err := app.DB.GetAllSubscriptions()
+
 	if err != nil {
 		app.logger.Error(err)
 		if err = app.badRequest(w, r, err); err != nil {

@@ -94,11 +94,6 @@
         </div>
     </div>
 
-    <input type="hidden" name="payment_intent" id="payment-intent">
-    <input type="hidden" name="payment_method" id="payment-method">
-    <input type="hidden" name="payment_amount" id="payment-amount">
-    <input type="hidden" name="payment_currency" id="payment-currency">
-
 </form>
 {{end}}
 
@@ -177,7 +172,8 @@
                     first_name: document.getElementById("first-name").value,
                     last_name: document.getElementById("last-name").value,
                     amount: document.getElementById("amount").value,
-                    currency: document.getElementById("payment-currency").value,
+                    currency: "eur",
+                    payment_intent: result.paymentMethod.id
                 }
 
                 const requestOptions = {
@@ -192,12 +188,11 @@
                 fetch("{{.API}}/v1/api/create-customer-subscribe", requestOptions)
                 .then(response => response.json())
                 .then(function(data) {
-                    console.log(data);
                     processing.classList.add("d-none");
                     showCardSuccess();
                     sessionStorage.first_name = document.getElementById("first-name").value;
                     sessionStorage.last_name = document.getElementById("last-name").value;
-                    sessionStorage.currency = document.getElementById("payment-currency").value;
+                    sessionStorage.currency = "eur";
                     sessionStorage.amount = "{{formatCurrency $widget.Price}}";
                     sessionStorage.last_four = result.paymentMethod.card.last4;
 
