@@ -122,6 +122,8 @@ func main() {
 		Session:       session,
 	}
 
+	go app.ListenToWsChannel()
+
 	// serve application
 	if err := app.serve(); err != nil {
 		app.logger.Fatal("unable to start the application ", err)
