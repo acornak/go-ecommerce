@@ -84,6 +84,11 @@ func main() {
 		version: version,
 	}
 
+	err = app.createDirIfNotExist("./invoices")
+	if err != nil {
+		logger.Fatal(err)
+	}
+
 	// serve application
 	if err := app.serve(); err != nil {
 		logger.Fatal("unable to start the application ", err)
