@@ -22,6 +22,10 @@ func (app *application) routes() http.Handler {
 
 		mux.Get("/sales/{id}", app.ShowSale)
 		mux.Get("/subscription/{id}", app.ShowSubscription)
+
+		mux.Get("/all-users", app.AllUsers)
+		mux.Get("/all-users/{id}", app.OneUser)
+
 	})
 
 	mux.Get("/receipt", app.Receipt)

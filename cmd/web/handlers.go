@@ -425,3 +425,17 @@ func (app *application) ShowSubscription(w http.ResponseWriter, r *http.Request)
 		return
 	}
 }
+
+func (app *application) AllUsers(w http.ResponseWriter, r *http.Request) {
+	if err := app.renderTemplate(w, r, "all-users", &templateData{}, "format-currency"); err != nil {
+		app.logger.Error("unable to render template: ", zap.Error(err))
+		return
+	}
+}
+
+func (app *application) OneUser(w http.ResponseWriter, r *http.Request) {
+	if err := app.renderTemplate(w, r, "one-user", &templateData{}, "format-currency"); err != nil {
+		app.logger.Error("unable to render template: ", zap.Error(err))
+		return
+	}
+}
