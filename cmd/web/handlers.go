@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"go-stripe/internal/cards"
 	"go-stripe/internal/encryption"
@@ -26,6 +28,17 @@ type TransactionData struct {
 	ExpiryMonth     int
 	ExpiryYear      int
 	BankReturnCode  string
+}
+
+type Invoice struct {
+	ID        int       `json:"id"`
+	Quantity  int       `json:"quantity"`
+	Amount    int       `json:"amount"`
+	Product   string    `json:"product"`
+	FirstName string    `json:"first_name"`
+	LastName  string    `json:"last_name"`
+	Email     string    `json:"email"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 // handler for homepage
@@ -159,14 +172,59 @@ func (app *application) PaymentSucceeded(w http.ResponseWriter, r *http.Request)
 		UpdatedAt:     time.Now(),
 	}
 
-	if _, err = app.SaveOrder(order); err != nil {
+	orderID, err := app.SaveOrder(order)
+	if err != nil {
 		app.logger.Error("failed to save order: ", zap.Error(err))
 		return
+	}
+
+	// create and send invoice
+	inv := Invoice{
+		ID:     orderID,
+		Amount: order.Amount,
+		// TODO: get from database
+		Product:   "Widget",
+		Quantity:  order.Quantity,
+		FirstName: txData.FirstName,
+		LastName:  txData.LastName,
+		Email:     txData.Email,
+		CreatedAt: time.Now(),
+	}
+
+	err = app.callInvoiceMicro(inv)
+	if err != nil {
+		app.logger.Error("failed to call invoice microservice: ", zap.Error(err))
 	}
 
 	// write data to session and redirect user to receipt page
 	app.Session.Put(r.Context(), "receipt", txData)
 	http.Redirect(w, r, "/receipt", http.StatusSeeOther)
+}
+
+func (app *application) callInvoiceMicro(inv Invoice) error {
+	// TODO: add to env vars
+	url := "http://localhost:4002/v1/invoice/create-and-send"
+
+	out, err := json.Marshal(inv)
+	if err != nil {
+		return err
+	}
+
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(out))
+	if err != nil {
+		return err
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	return nil
 }
 
 // handler for receipt page

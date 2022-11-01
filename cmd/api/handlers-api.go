@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -39,6 +40,17 @@ type jsonResponse struct {
 	Message string `json:"message,omitempty"`
 	Content string `json:"content,omitempty"`
 	ID      int    `json:"id,omitempty"`
+}
+
+type Invoice struct {
+	ID        int       `json:"id"`
+	Quantity  int       `json:"quantity"`
+	Amount    int       `json:"amount"`
+	Product   string    `json:"product"`
+	FirstName string    `json:"first_name"`
+	LastName  string    `json:"last_name"`
+	Email     string    `json:"email"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 // get payment intent from stripe
@@ -141,7 +153,10 @@ func (app *application) CreateCustomerSubscribe(w http.ResponseWriter, r *http.R
 
 	err := json.NewDecoder(r.Body).Decode(&data)
 	if err != nil {
-		app.logger.Error("failed to decode body: ", zap.Error(err))
+		app.logger.Error(err)
+		if err = app.badRequest(w, r, err); err != nil {
+			app.logger.Error(err)
+		}
 		return
 	}
 
@@ -152,112 +167,146 @@ func (app *application) CreateCustomerSubscribe(w http.ResponseWriter, r *http.R
 		Currency: data.Currency,
 	}
 
-	ok := true
-	txMsg := "Transaction successful"
-
 	stripeCustomer, msg, err := card.CreateCustomer(data.PaymentMethod, data.Email)
-	if err != nil {
-		app.logger.Error("failed to create new customer: ", zap.Error(err))
-		ok = false
-		txMsg = msg
-	}
-
-	var subscriptionID string
-
-	if ok {
-		subscription, err := card.SubsctibeToPlan(stripeCustomer, data.Plan, data.Email, data.LastFour, "")
-		subscriptionID = subscription.ID
-
-		if err != nil {
-			txMsg = "failed to subscribe customer to a plan"
-			app.logger.Error(txMsg, ": ", zap.Error(err))
-			ok = false
+	if err != nil && msg != "The payment method you provided has already been attached to a customer." {
+		app.logger.Error(err)
+		if err = app.badRequest(w, r, errors.New(msg)); err != nil {
+			app.logger.Error(err)
 		}
-	}
-
-	if ok {
-		func() {
-			productID, err := strconv.Atoi(data.ProductID)
-			if err != nil {
-				txMsg = "failed to convert productID"
-				app.logger.Error(txMsg, ": ", zap.Error(err))
-				ok = false
-				return
-			}
-
-			customerID, err := app.SaveCustomer(data.FirstName, data.LastName, data.Email)
-			if err != nil {
-				txMsg = "failed to convert productID: "
-				app.logger.Error(txMsg, ": ", zap.Error(err))
-				ok = false
-				return
-			}
-
-			amount, err := strconv.Atoi(data.Amount)
-			if err != nil {
-				txMsg = "failed to convert amount"
-				app.logger.Error(txMsg, ": ", zap.Error(err))
-				ok = false
-				return
-			}
-
-			tx := models.Transaction{
-				Amount:              amount,
-				Currency:            data.Currency,
-				LastFour:            data.LastFour,
-				ExpiryMonth:         data.ExpiryMonth,
-				ExpiryYear:          data.ExpiryYear,
-				TransactionStatusID: 2,
-				PaymentMethod:       data.PaymentMethod,
-				PaymentIntent:       subscriptionID,
-			}
-
-			txID, err := app.SaveTransaction(tx)
-			if err != nil {
-				txMsg = "failed to get transaction ID"
-				app.logger.Error(txMsg, ": ", zap.Error(err))
-				ok = false
-				return
-			}
-
-			order := models.Order{
-				WidgetID:      productID,
-				TransactionID: txID,
-				CustomerID:    customerID,
-				StatusID:      1,
-				Quantity:      1,
-				Amount:        amount,
-				CreatedAt:     time.Now(),
-				UpdatedAt:     time.Now(),
-			}
-
-			_, err = app.SaveOrder(order)
-			if err != nil {
-				txMsg = "failed to save order"
-				app.logger.Error(txMsg, ": ", zap.Error(err))
-				ok = false
-				return
-			}
-		}()
-	}
-
-	resp := jsonResponse{
-		OK:      ok,
-		Message: txMsg,
-		Content: "",
-	}
-
-	// TODO: use writeJson
-	out, err := json.Marshal(resp)
-	if err != nil {
-		app.logger.Error("failed to get marshal json: ", zap.Error(err))
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	if _, err = w.Write(out); err != nil {
+	subscription, err := card.SubsctibeToPlan(stripeCustomer, data.Plan, data.Email, data.LastFour, "")
+
+	if err != nil {
+		app.logger.Error(err)
+		if err = app.badRequest(w, r, err); err != nil {
+			app.logger.Error(err)
+		}
+		return
+	}
+
+	productID, err := strconv.Atoi(data.ProductID)
+	if err != nil {
+		app.logger.Error(err)
+		if err = app.badRequest(w, r, err); err != nil {
+			app.logger.Error(err)
+		}
+		return
+	}
+
+	customerID, err := app.SaveCustomer(data.FirstName, data.LastName, data.Email)
+	if err != nil {
+		app.logger.Error(err)
+		if err = app.badRequest(w, r, err); err != nil {
+			app.logger.Error(err)
+		}
+		return
+	}
+
+	amount, err := strconv.Atoi(data.Amount)
+	if err != nil {
+		app.logger.Error(err)
+		if err = app.badRequest(w, r, err); err != nil {
+			app.logger.Error(err)
+		}
+		return
+	}
+
+	tx := models.Transaction{
+		Amount:              amount,
+		Currency:            data.Currency,
+		LastFour:            data.LastFour,
+		ExpiryMonth:         data.ExpiryMonth,
+		ExpiryYear:          data.ExpiryYear,
+		TransactionStatusID: 2,
+		PaymentMethod:       data.PaymentMethod,
+		PaymentIntent:       subscription.ID,
+	}
+
+	txID, err := app.SaveTransaction(tx)
+	if err != nil {
+		app.logger.Error(err)
+		if err = app.badRequest(w, r, err); err != nil {
+			app.logger.Error(err)
+		}
+		return
+	}
+
+	order := models.Order{
+		WidgetID:      productID,
+		TransactionID: txID,
+		CustomerID:    customerID,
+		StatusID:      1,
+		Quantity:      1,
+		Amount:        amount,
+		CreatedAt:     time.Now(),
+		UpdatedAt:     time.Now(),
+	}
+
+	orderID, err := app.SaveOrder(order)
+	if err != nil {
+		app.logger.Error(err)
+		if err = app.badRequest(w, r, err); err != nil {
+			app.logger.Error(err)
+		}
+		return
+	}
+
+	inv := Invoice{
+		ID: orderID,
+		// TODO:
+		Amount: 2000,
+		// TODO: get from database
+		Product:   "Bronze Plan",
+		Quantity:  order.Quantity,
+		FirstName: data.FirstName,
+		LastName:  data.LastName,
+		Email:     data.Email,
+		CreatedAt: time.Now(),
+	}
+
+	err = app.callInvoiceMicro(inv)
+	if err != nil {
+		app.logger.Error("failed to call invoice microservice: ", zap.Error(err))
+	}
+
+	var resp struct {
+		Error   bool   `json:"error"`
+		Message string `json:"message"`
+	}
+
+	resp.Error = false
+	resp.Message = "Transaction Successful: " + fmt.Sprint(inv)
+
+	if err = app.writeJson(w, http.StatusOK, resp); err != nil {
 		app.logger.Error("error writing response: ", zap.Error(err))
 	}
+}
+
+func (app *application) callInvoiceMicro(inv Invoice) error {
+	// TODO: add to env vars
+	url := "http://localhost:4002/v1/invoice/create-and-send"
+
+	out, err := json.Marshal(inv)
+	if err != nil {
+		return err
+	}
+
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(out))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	return nil
 }
 
 // create a new customer

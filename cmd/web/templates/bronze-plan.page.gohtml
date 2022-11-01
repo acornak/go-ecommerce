@@ -124,6 +124,7 @@
         cardMessages.classList.remove("alert-success");
         cardMessages.classList.remove("d-none");
         cardMessages.innerText = msg;
+        doument.getElementById("processing-payment").classList.add("d-none")
     };
 
     function showCardSuccess() {
@@ -188,15 +189,20 @@
                 fetch("{{.API}}/v1/api/create-customer-subscribe", requestOptions)
                 .then(response => response.json())
                 .then(function(data) {
-                    processing.classList.add("d-none");
-                    showCardSuccess();
-                    sessionStorage.first_name = document.getElementById("first-name").value;
-                    sessionStorage.last_name = document.getElementById("last-name").value;
-                    sessionStorage.currency = "eur";
-                    sessionStorage.amount = "{{formatCurrency $widget.Price}}";
-                    sessionStorage.last_four = result.paymentMethod.card.last4;
+                    console.log(data)
+                    if (data.error) {
+                        showCardError(data.message)
+                    } else {
+                        processing.classList.add("d-none");
+                        showCardSuccess();
+                        sessionStorage.first_name = document.getElementById("first-name").value;
+                        sessionStorage.last_name = document.getElementById("last-name").value;
+                        sessionStorage.currency = "eur";
+                        sessionStorage.amount = "{{formatCurrency $widget.Price}}";
+                        sessionStorage.last_four = result.paymentMethod.card.last4;
 
-                    location.href = "/receipt/bronze";
+                        location.href = "/receipt/bronze";
+                    }
                 })
             }
         }
