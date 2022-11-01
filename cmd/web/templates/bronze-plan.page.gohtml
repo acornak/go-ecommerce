@@ -124,7 +124,7 @@
         cardMessages.classList.remove("alert-success");
         cardMessages.classList.remove("d-none");
         cardMessages.innerText = msg;
-        doument.getElementById("processing-payment").classList.add("d-none")
+        processing.classList.add("d-none");
     };
 
     function showCardSuccess() {
@@ -178,7 +178,7 @@
                 }
 
                 const requestOptions = {
-                    method: "post",
+                    method: "POST",
                     headers: {
                         "Accept": "application/json",
                         "Content-Type": "application/json",
@@ -188,7 +188,11 @@
 
                 fetch("{{.API}}/v1/api/create-customer-subscribe", requestOptions)
                 .then(response => response.json())
-                .then(function(data) {
+                .catch(err => {
+                    console.log(err);
+                    showCardError(err);
+                })
+                .then(data => {
                     console.log(data)
                     if (data.error) {
                         showCardError(data.message)

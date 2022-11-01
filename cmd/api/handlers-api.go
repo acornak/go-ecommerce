@@ -153,9 +153,9 @@ func (app *application) CreateCustomerSubscribe(w http.ResponseWriter, r *http.R
 
 	err := json.NewDecoder(r.Body).Decode(&data)
 	if err != nil {
-		app.logger.Error(err)
+		app.logger.Error("failed to decode json body: ", err)
 		if err = app.badRequest(w, r, err); err != nil {
-			app.logger.Error(err)
+			app.logger.Error("failed to write response: ", err)
 		}
 		return
 	}
@@ -168,47 +168,46 @@ func (app *application) CreateCustomerSubscribe(w http.ResponseWriter, r *http.R
 	}
 
 	stripeCustomer, msg, err := card.CreateCustomer(data.PaymentMethod, data.Email)
-	if err != nil && msg != "The payment method you provided has already been attached to a customer." {
-		app.logger.Error(err)
+	if err != nil {
+		app.logger.Error("failed to create customer: ", err)
 		if err = app.badRequest(w, r, errors.New(msg)); err != nil {
-			app.logger.Error(err)
+			app.logger.Error("failed to write response: ", err)
 		}
 		return
 	}
 
-	subscription, err := card.SubsctibeToPlan(stripeCustomer, data.Plan, data.Email, data.LastFour, "")
-
+	subscription, err := card.SubscribeToPlan(stripeCustomer, data.Plan, data.Email, data.LastFour, "")
 	if err != nil {
-		app.logger.Error(err)
+		app.logger.Error("failed to subscribe to plan: ", err)
 		if err = app.badRequest(w, r, err); err != nil {
-			app.logger.Error(err)
+			app.logger.Error("failed to write response: ", err)
 		}
 		return
 	}
 
 	productID, err := strconv.Atoi(data.ProductID)
 	if err != nil {
-		app.logger.Error(err)
+		app.logger.Error("failed to convert product id: ", err)
 		if err = app.badRequest(w, r, err); err != nil {
-			app.logger.Error(err)
+			app.logger.Error("failed to write response: ", err)
 		}
 		return
 	}
 
 	customerID, err := app.SaveCustomer(data.FirstName, data.LastName, data.Email)
 	if err != nil {
-		app.logger.Error(err)
+		app.logger.Error("failed to save customer: ", err)
 		if err = app.badRequest(w, r, err); err != nil {
-			app.logger.Error(err)
+			app.logger.Error("failed to write response: ", err)
 		}
 		return
 	}
 
 	amount, err := strconv.Atoi(data.Amount)
 	if err != nil {
-		app.logger.Error(err)
+		app.logger.Error("failed to convert amount: ", err)
 		if err = app.badRequest(w, r, err); err != nil {
-			app.logger.Error(err)
+			app.logger.Error("failed to write response: ", err)
 		}
 		return
 	}
@@ -226,9 +225,9 @@ func (app *application) CreateCustomerSubscribe(w http.ResponseWriter, r *http.R
 
 	txID, err := app.SaveTransaction(tx)
 	if err != nil {
-		app.logger.Error(err)
+		app.logger.Error("failed to save transaction: ", err)
 		if err = app.badRequest(w, r, err); err != nil {
-			app.logger.Error(err)
+			app.logger.Error("failed to write response: ", err)
 		}
 		return
 	}
@@ -246,9 +245,9 @@ func (app *application) CreateCustomerSubscribe(w http.ResponseWriter, r *http.R
 
 	orderID, err := app.SaveOrder(order)
 	if err != nil {
-		app.logger.Error(err)
+		app.logger.Error("failed to save order: ", err)
 		if err = app.badRequest(w, r, err); err != nil {
-			app.logger.Error(err)
+			app.logger.Error("failed to write response: ", err)
 		}
 		return
 	}
@@ -280,7 +279,7 @@ func (app *application) CreateCustomerSubscribe(w http.ResponseWriter, r *http.R
 	resp.Message = "Transaction Successful: " + fmt.Sprint(inv)
 
 	if err = app.writeJson(w, http.StatusOK, resp); err != nil {
-		app.logger.Error("error writing response: ", zap.Error(err))
+		app.logger.Error("failed to write response: ", err)
 	}
 }
 

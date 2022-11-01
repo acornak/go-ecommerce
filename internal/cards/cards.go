@@ -106,7 +106,7 @@ func cardErrorMessage(code stripe.ErrorCode) string {
 }
 
 // subscribes customer to a plan, returns subscription ID
-func (c *Card) SubsctibeToPlan(cust *stripe.Customer, plan, email, last4, cardType string) (*stripe.Subscription, error) {
+func (c *Card) SubscribeToPlan(cust *stripe.Customer, plan, email, last4, cardType string) (*stripe.Subscription, error) {
 	stripeCustomerID := cust.ID
 	items := []*stripe.SubscriptionItemsParams{
 		{Plan: stripe.String(plan)},

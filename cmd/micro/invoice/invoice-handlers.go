@@ -64,6 +64,8 @@ func (app *application) CreateAndSend(w http.ResponseWriter, r *http.Request) {
 	resp.Error = false
 	resp.Message = fmt.Sprintf("Invoice %d.pdf created and sent to %s", order.ID, order.Email)
 
+	app.logger.Info(resp.Message)
+
 	if err = app.writeJson(w, http.StatusOK, resp); err != nil {
 		app.logger.Error("error writing response: ", zap.Error(err))
 	}
